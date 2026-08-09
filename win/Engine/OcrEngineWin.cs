@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
-using Windows.Graphics.Imaging;
-using Windows.Media.Ocr;
 
 namespace CtdoShotWin.Engine
 {
@@ -13,17 +11,17 @@ namespace CtdoShotWin.Engine
         {
             try
             {
-                var engine = OcrEngine.TryCreateFromUserProfileLanguages();
+                var engine = Windows.Media.Ocr.OcrEngine.TryCreateFromUserProfileLanguages();
                 if (engine == null) return null;
 
                 // Convert BitmapSource -> SoftwareBitmap
                 using var stream = new MemoryStream();
                 var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapSource));
                 encoder.Save(stream);
                 stream.Position = 0;
 
-                var decoder = await BitmapDecoder.CreateAsync(stream.AsRandomAccessStream());
+                var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream.AsRandomAccessStream());
                 using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
 
                 var ocrResult = await engine.RecognizeAsync(softwareBitmap);
