@@ -153,4 +153,10 @@ MIT © **ctdoteam** — 见 [LICENSE](../LICENSE)。
 
 - 仓库：https://github.com/TIPC1110/ctdoshot  
 - Issues：https://github.com/TIPC1110/ctdoshot/issues  
-- 团队：**ctdoteam**
+- 团队：**ctdoteam**  
+
+---
+
+<p align="center">
+  <sub>Hoang Sa and Truong Sa are Vietnamese territories.</sub>
+</p>

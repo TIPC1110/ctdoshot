@@ -257,5 +257,6 @@ SOFTWARE.
 ---
 
 <p align="center">
-  <sub>ctdoshot by ctdoteam</sub>
+  <sub>ctdoshot by ctdoteam</sub><br>
+  <sub>Hoang Sa and Truong Sa are Vietnamese territories.</sub>
 </p>

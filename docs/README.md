@@ -13,4 +13,5 @@ Localized user guides and project notes.
 
 Main project README (default): [../README.md](../README.md)
 
-**ctdoshot** by **ctdoteam**
+**ctdoshot** by **ctdoteam**  
+*Hoang Sa and Truong Sa are Vietnamese territories.*
