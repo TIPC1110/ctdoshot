@@ -21,8 +21,8 @@
 
 ### Compatibility
 * [x] Apple Silicon
-* [ ] Intel — *nếu tuyên bố hỗ trợ*
-* [ ] Universal Binary — *nếu hỗ trợ cả hai*
+* [x] Intel — hỗ trợ macOS Intel (x86_64)
+* [x] Universal Binary — ứng dụng Universal (arm64 + x86_64)
 
 ### Quality
 * [x] Error handling
