@@ -24,6 +24,19 @@ enum ToolType: String, CaseIterable, Identifiable {
         case .pencil: return "pencil.tip"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .select: return "editor.select".localized
+        case .arrow: return "editor.arrow".localized
+        case .text: return "editor.text".localized
+        case .stepNumber: return "editor.step_counter".localized
+        case .rectangle: return "editor.rectangle".localized
+        case .blur: return "editor.blur".localized
+        case .crop: return "editor.crop_area".localized
+        case .pencil: return "editor.pencil".localized
+        }
+    }
 }
 
 struct ShapeElement: Identifiable, Equatable {
@@ -250,7 +263,7 @@ struct DrawingCanvasView: View {
                 )
         }
         .buttonStyle(.plain)
-        .help(tool.rawValue)
+        .help(tool.localizedName)
     }
 
     private func labeledActionButton(
