@@ -580,6 +580,13 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
             self?.isOCRBusy = false
             guard let text = text, !text.isEmpty else {
                 self?.notify(title: sourceLabel, body: "ocr.failed".localized)
+                
+                let alert = NSAlert()
+                alert.messageText = "OCR"
+                alert.informativeText = "ocr.failed".localized
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
                 return
             }
 
@@ -592,6 +599,13 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
                 title: sourceLabel,
                 body: "ocr.copied_alert".localized + "\n" + preview
             )
+
+            let alert = NSAlert()
+            alert.messageText = "ocr.copied_alert".localized
+            alert.informativeText = text
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
         }
     }
 
