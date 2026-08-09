@@ -208,37 +208,12 @@ public enum CaptureEngine {
                 pointSize = CGSize(width: fullW, height: fullH)
             }
 
-            // ScreenCaptureKit image buffer coordinate space top-left vs AppKit coordinate space bottom-left.
-            // Flip vertically so the captured NSImage displays upright.
-            guard let flippedCg = flipVertically(cgImage: rawCgImage) else {
-                return NSImage(cgImage: rawCgImage, size: pointSize)
-            }
-            return NSImage(cgImage: flippedCg, size: pointSize)
+            // SCScreenshotManager / stream CGImage is already top-left; NSImage(cgImage:) displays it upright.
+            return NSImage(cgImage: rawCgImage, size: pointSize)
         } catch {
             NSLog("ctdoshot SCK capture error: \(error.localizedDescription)")
             return nil
         }
-    }
-
-    private static func flipVertically(cgImage: CGImage) -> CGImage? {
-        let width = cgImage.width
-        let height = cgImage.height
-        guard let colorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
-              let ctx = CGContext(
-                data: nil,
-                width: width,
-                height: height,
-                bitsPerComponent: cgImage.bitsPerComponent,
-                bytesPerRow: 0,
-                space: colorSpace,
-                bitmapInfo: cgImage.bitmapInfo.rawValue
-              ) else {
-            return nil
-        }
-        ctx.translateBy(x: 0, y: CGFloat(height))
-        ctx.scaleBy(x: 1.0, y: -1.0)
-        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        return ctx.makeImage()
     }
 
     private static func captureViaStream(filter: SCContentFilter, config: SCStreamConfiguration) async throws -> CGImage {
@@ -341,10 +316,7 @@ public enum CaptureEngine {
             }
 
             let pointSize = CGSize(width: window.frame.width, height: window.frame.height)
-            guard let flippedCg = flipVertically(cgImage: rawCgImage) else {
-                return NSImage(cgImage: rawCgImage, size: pointSize)
-            }
-            return NSImage(cgImage: flippedCg, size: pointSize)
+            return NSImage(cgImage: rawCgImage, size: pointSize)
         } catch {
             NSLog("ctdoshot SCK window capture error: \(error.localizedDescription)")
             return nil
