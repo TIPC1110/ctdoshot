@@ -1,9 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// Vertical scroll-capture stitch: find best row overlap via grayscale MSE, append unique tail.
 public enum ScrollStitcher {
-    /// Stitch frames top-to-bottom. Empty → nil; single frame → that frame; multiple → successive appends.
     public static func stitch(frames: [NSImage], minOverlap: Int, maxOverlap: Int) -> NSImage? {
         guard let first = frames.first else { return nil }
         var canvas = first
@@ -21,9 +19,6 @@ public enum ScrollStitcher {
         return canvas
     }
 
-    // MARK: - Append
-
-    /// Find best overlap of `canvas` bottom vs `next` top (grayscale MSE), then composite.
     private static func append(
         canvas: NSImage,
         next: NSImage,
@@ -66,7 +61,6 @@ public enum ScrollStitcher {
             }
             bestOverlap = bestO
         } else {
-            // No valid search range — stack with zero overlap.
             bestOverlap = 0
         }
 
@@ -110,13 +104,6 @@ public enum ScrollStitcher {
         )
     }
 
-    // MARK: - Grayscale / MSE
-
-    /// Row-major grayscale (0…255) with y=0 at the **top** of the image.
-    ///
-    /// Drawing a bitmap-backed `CGImage` into a gray context without an extra
-    /// Y-flip yields top-first rows for the NSBitmapImageRep path we use in tests
-    /// and for typical screen captures.
     private static func grayscalePixels(from cgImage: CGImage) -> [UInt8]? {
         let w = cgImage.width
         let h = cgImage.height
@@ -141,7 +128,6 @@ public enum ScrollStitcher {
         return ok ? pixels : nil
     }
 
-    /// Mean squared difference between canvas bottom `overlap` rows and next top `overlap` rows.
     private static func rowMSE(
         a: [UInt8],
         aWidth: Int,
@@ -168,9 +154,6 @@ public enum ScrollStitcher {
         return sum / count
     }
 
-    // MARK: - CGImage extraction
-
-    /// Full-resolution CGImage — bare `cgImage(forProposedRect:)` is unreliable for some reps.
     private static func makeCGImage(from image: NSImage) -> CGImage? {
         if let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
            cg.width >= 1, cg.height >= 1 {

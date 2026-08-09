@@ -65,7 +65,6 @@ struct DrawingCanvasView: View {
     @State private var currentEnd: CGPoint?
     @State private var currentPencilPoints: [CGPoint] = []
     @State private var stepCounter: Int = 1
-    /// Fitted on-screen size of the image (view coordinates). Updated every layout.
     @State private var fitSize: CGSize = .zero
 
     var onCopy: (NSImage) -> Void
@@ -80,12 +79,10 @@ struct DrawingCanvasView: View {
             Divider()
             editorCanvas
         }
-        // Copy image → clipboard: Ctrl+C (requested) + Cmd+C
         .background(shortcutBoard)
         .focusable()
     }
 
-    /// Invisible focusable host so global-style editor shortcuts always work.
     private var shortcutBoard: some View {
         ZStack {
             Button(action: { emitComposite(onCopy) }) { EmptyView() }
@@ -108,7 +105,6 @@ struct DrawingCanvasView: View {
     private var toolbar: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                // File / history actions
                 toolbarIconButton(
                     systemName: "doc.on.doc",
                     help: "editor.copy_clipboard".localized + " (⌃C / ⌘C)",
@@ -155,14 +151,12 @@ struct DrawingCanvasView: View {
 
                 toolbarDivider
 
-                // Drawing tools
                 ForEach(ToolType.allCases) { tool in
                     toolButton(tool)
                 }
 
                 toolbarDivider
 
-                // Color
                 ColorPicker("", selection: $selectedColor)
                     .labelsHidden()
                     .frame(width: 28, height: 28)
@@ -175,7 +169,6 @@ struct DrawingCanvasView: View {
 
                 Spacer(minLength: 8)
 
-                // Primary actions — icon + short label, fixedSize so never "OC…"
                 HStack(spacing: 8) {
                     labeledActionButton(
                         title: "OCR",
@@ -297,7 +290,6 @@ struct DrawingCanvasView: View {
                         .interpolation(.high)
                         .frame(width: fit.width, height: fit.height)
 
-                    // Layer 1: committed annotations (stored in image-point space)
                     Canvas { context, size in
                         for elem in elements {
                             let viewElem = elementToView(elem, fit: size)
@@ -307,10 +299,8 @@ struct DrawingCanvasView: View {
                     .frame(width: fit.width, height: fit.height)
                     .drawingGroup()
 
-                    // Layer 2: live stroke (also image-point space)
                     Canvas { context, size in
                         if let start = currentStart, let end = currentEnd {
-                            // Text tool commits only after modal input — skip live preview label.
                             if currentTool == .text { return }
                             let liveText: String = currentTool == .stepNumber ? "\(stepCounter)" : ""
                             let temp = ShapeElement(
@@ -358,7 +348,6 @@ struct DrawingCanvasView: View {
                     resetLiveStroke()
                     return
                 }
-                // Select tool: no commit
                 if currentTool == .select {
                     resetLiveStroke()
                     return
@@ -366,21 +355,18 @@ struct DrawingCanvasView: View {
 
                 let endImg = viewToImage(val.location)
 
-                // Crop: bake into bgImage, drop annotations (coords invalid after resize).
                 if currentTool == .crop {
                     applyCrop(from: start, to: endImg)
                     resetLiveStroke()
                     return
                 }
 
-                // Blur/mosaic: pixelate region into bgImage — no vector black rect.
                 if currentTool == .blur {
                     applyPixelate(from: start, to: endImg)
                     resetLiveStroke()
                     return
                 }
 
-                // Text: prompt for user string; Esc / empty cancels without commit.
                 if currentTool == .text {
                     let anchor = start
                     resetLiveStroke()
@@ -404,7 +390,6 @@ struct DrawingCanvasView: View {
             }
     }
 
-    /// Modal text entry for the text annotation tool. Enter commits; Esc / Cancel discards.
     private func promptForText(at point: CGPoint) {
         let alert = NSAlert()
         alert.messageText = "editor.text_prompt".localized
@@ -419,7 +404,6 @@ struct DrawingCanvasView: View {
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
 
-        // Ensure Return commits and Esc cancels.
         alert.buttons[0].keyEquivalent = "\r"
         alert.buttons[1].keyEquivalent = "\u{1b}"
 
@@ -438,8 +422,6 @@ struct DrawingCanvasView: View {
             commitAppend(newElem)
         }
     }
-
-    // MARK: - Undo / Redo
 
     private func commitAppend(_ element: ShapeElement) {
         undoStack.append(elements)
@@ -465,9 +447,6 @@ struct DrawingCanvasView: View {
         currentPencilPoints = []
     }
 
-    // MARK: - Raster tools (crop / blur)
-
-    /// Normalized rect in image point space (origin top-left), matching `ImageEffects`.
     private func normalizedRect(from start: CGPoint, to end: CGPoint) -> CGRect {
         let img = bgImage.size
         guard img.width > 0, img.height > 0 else { return .zero }
@@ -493,25 +472,19 @@ struct DrawingCanvasView: View {
         let cropRect = CGRect(origin: cropOrigin, size: cropSize)
         guard cropSize.width > 1, cropSize.height > 1 else { return }
 
-        // Remap vectors into cropped image space (do not wipe annotations).
         let remapped = elements.compactMap { remapElement($0, intoCrop: cropRect) }
 
-        // Preserve undo of pre-crop vectors (image itself is not on the vector stack).
         undoStack.append(elements)
         redoStack.removeAll()
 
         guard let cropped = ImageEffects.crop(bgImage, toNormalized: nr) else { return }
         bgImage = cropped
         elements = remapped
-        // Vector undo relative to the old image size is invalid — keep only the
-        // pre-crop snapshot as a single restore of annotations (not full image undo).
-        // Clear deep history to avoid mixing coordinate spaces.
         if undoStack.count > 1 {
             undoStack = [undoStack.last!]
         }
     }
 
-    /// Translate image-space element into crop-local coordinates; drop if fully outside.
     private func remapElement(_ elem: ShapeElement, intoCrop crop: CGRect) -> ShapeElement? {
         func map(_ p: CGPoint) -> CGPoint {
             CGPoint(x: p.x - crop.minX, y: p.y - crop.minY)
@@ -520,7 +493,6 @@ struct DrawingCanvasView: View {
         let mappedStart = map(elem.startPoint)
         let mappedEnd = map(elem.endPoint)
 
-        // Keep if any control point intersects crop (in original space).
         let originals = elem.points.isEmpty
             ? [elem.startPoint, elem.endPoint]
             : elem.points + [elem.startPoint, elem.endPoint]
@@ -551,10 +523,6 @@ struct DrawingCanvasView: View {
         bgImage = out
     }
 
-    // MARK: - Esc / after-capture prefs
-
-    /// Honors Advanced prefs `actionOnEscCopy` (default true) and `actionOnEscSave`.
-    /// Save wins over copy when both are on; if both off, just close.
     private func handleEscCancel() {
         let defaults = UserDefaults.standard
         let shouldCopy = defaults.object(forKey: "actionOnEscCopy") as? Bool ?? true
@@ -568,14 +536,10 @@ struct DrawingCanvasView: View {
         onCancel()
     }
 
-    // MARK: - Composite export
-
     private func emitComposite(_ handler: (NSImage) -> Void) {
         handler(renderComposite())
     }
 
-    /// Bake background + vector annotations into a pixel-correct NSImage.
-    /// Elements are stored in image point-space already — no view-size dependency.
     func renderComposite() -> NSImage {
         let pixel = pixelSize(of: bgImage)
         let pointSize = bgImage.size.width > 0 && bgImage.size.height > 0
@@ -606,7 +570,6 @@ struct DrawingCanvasView: View {
         NSGraphicsContext.current = ctx
         let cg = ctx.cgContext
 
-        // Flip to top-left origin to match SwiftUI Canvas
         cg.translateBy(x: 0, y: pointSize.height)
         cg.scaleBy(x: 1, y: -1)
 
@@ -621,7 +584,6 @@ struct DrawingCanvasView: View {
             )
         }
 
-        // Match on-screen stroke thickness: view uses ~3pt on fit canvas.
         let fitW = fitSize.width > 1 ? fitSize.width : pointSize.width
         let strokeScale = pointSize.width / max(fitW, 1)
 
@@ -633,8 +595,6 @@ struct DrawingCanvasView: View {
         out.addRepresentation(rep)
         return out
     }
-
-    // MARK: - Coordinate space (image points ↔ fitted view)
 
     private func viewToImage(_ p: CGPoint) -> CGPoint {
         let img = bgImage.size
@@ -738,7 +698,6 @@ struct DrawingCanvasView: View {
             )
 
         case .blur:
-            // Raster-only tool; committed elements should not include blur.
             break
 
         case .crop, .select:
@@ -763,7 +722,6 @@ struct DrawingCanvasView: View {
         ]
         let ns = NSAttributedString(string: string, attributes: attrs)
         let size = ns.size()
-        // Unflip only for text so AppKit string drawing is upright.
         let flippedY = point.y
         let origin: CGPoint
         if centered {
@@ -777,8 +735,6 @@ struct DrawingCanvasView: View {
         ns.draw(at: CGPoint(x: origin.x, y: 0))
         NSGraphicsContext.current?.cgContext.restoreGState()
     }
-
-    // MARK: - SwiftUI live drawing (view coordinates)
 
     private func drawElement(_ elem: ShapeElement, in context: inout GraphicsContext) {
         let rect = CGRect(
@@ -798,7 +754,6 @@ struct DrawingCanvasView: View {
             var path = Path()
             path.move(to: elem.startPoint)
             path.addLine(to: elem.endPoint)
-            // head
             let angle = atan2(elem.endPoint.y - elem.startPoint.y, elem.endPoint.x - elem.startPoint.x)
             let head: CGFloat = 14
             path.move(to: elem.endPoint)
@@ -836,7 +791,6 @@ struct DrawingCanvasView: View {
             context.draw(text, at: elem.startPoint, anchor: .topLeading)
 
         case .blur:
-            // Live preview only (not committed as a vector element).
             var path = Path()
             path.addRect(rect)
             context.fill(path, with: .color(.black.opacity(0.25)))
@@ -855,8 +809,6 @@ struct DrawingCanvasView: View {
             break
         }
     }
-
-    // MARK: - Geometry helpers
 
     private func fittedImageRect(imageSize: CGSize, in container: CGSize) -> CGRect {
         guard imageSize.width > 0, imageSize.height > 0,

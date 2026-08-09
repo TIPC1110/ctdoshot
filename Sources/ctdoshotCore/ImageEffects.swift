@@ -2,15 +2,8 @@ import AppKit
 import CoreImage
 import CoreGraphics
 
-/// Raster image operations for the editor (crop, pixelate/blur).
-///
-/// Normalized rects use **image point space** with origin at the **top-left**
-/// (x right, y down), matching `DrawingCanvasView` image-point coordinates.
-/// Components are fractions of `image.size` in `0...1` (clamped).
 public enum ImageEffects {
 
-    /// Pixel-accurate crop via `CGImage.cropping`. Returns a new image whose
-    /// point size is `image.size` scaled by the normalized rect size.
     public static func crop(_ image: NSImage, toNormalized r: CGRect) -> NSImage? {
         guard let cg = makeCGImage(from: image) else { return nil }
         let pw = CGFloat(cg.width)
@@ -43,8 +36,6 @@ public enum ImageEffects {
         return NSImage(cgImage: cropped, size: pointSize)
     }
 
-    /// Apply `CIPixellate` to a normalized region and composite back onto the full image.
-    /// Output has the same dimensions as the input. Does not black-out the region.
     public static func pixelate(
         _ image: NSImage,
         normalizedRect: CGRect,
@@ -97,9 +88,6 @@ public enum ImageEffects {
         return NSImage(cgImage: outCG, size: image.size)
     }
 
-    // MARK: - Helpers
-
-    /// Clamp normalized rect into the unit square; width/height stay non-negative.
     private static func clampNormalized(_ r: CGRect) -> CGRect {
         var x = r.origin.x
         var y = r.origin.y

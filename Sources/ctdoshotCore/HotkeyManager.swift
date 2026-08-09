@@ -2,18 +2,15 @@ import Foundation
 import Carbon
 import AppKit
 
-/// Carbon hotkey registration driven by `HotkeyAction` + `HotkeyStore`.
 public class HotkeyManager {
     public static let shared = HotkeyManager()
 
     private var eventHandler: EventHandlerRef?
     private var registeredHotkeys: [UInt32: EventHotKeyRef] = [:]
-    /// Handlers keyed by `HotkeyAction.carbonID`.
     public var handlers: [UInt32: () -> Void] = [:]
 
     public init() {}
 
-    /// Stable Carbon hotkey id for an action (1-based index into `allCases`).
     public static func carbonID(for action: HotkeyAction) -> UInt32 {
         guard let idx = HotkeyAction.allCases.firstIndex(of: action) else { return 0 }
         return UInt32(idx) + 1
@@ -25,7 +22,6 @@ public class HotkeyManager {
         return HotkeyAction.allCases[idx]
     }
 
-    /// Install Carbon handler and register every action from `HotkeyStore`.
     public func registerAll() {
         unregister()
 
@@ -70,12 +66,10 @@ public class HotkeyManager {
         }
     }
 
-    /// Unregister and re-register from current store (after prefs change).
     public func reregisterAll() {
         registerAll()
     }
 
-    /// Backward-compatible alias used by existing call sites.
     public func registerAllGlobalHotkeys() {
         registerAll()
     }
@@ -113,7 +107,6 @@ public class HotkeyManager {
 }
 
 extension HotkeyAction {
-    /// Localized (or English fallback) label for preferences / menus.
     public var displayName: String {
         switch self {
         case .captureArea: return "menu.capture_area".localized

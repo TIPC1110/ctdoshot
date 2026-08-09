@@ -1,8 +1,6 @@
 # ctdoshot
 
-**パワーユーザー向けの、高速でネイティブな macOS スクリーンショットツール。**
-
-メニューバーから撮影 → 注釈 → コピー/保存。ScreenCaptureKit・SwiftUI・Vision 製。Shottr / ShareX 系のワークフローに近く、macOS 向けに最適化。
+macOS のメニューバー用スクリーンショットツール。撮影・注釈・コピー/保存。
 
 **By [ctdoteam](https://github.com/TIPC1110)** · [GitHub](https://github.com/TIPC1110/ctdoshot)
 

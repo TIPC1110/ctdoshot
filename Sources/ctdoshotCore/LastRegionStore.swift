@@ -1,7 +1,6 @@
 import Foundation
 import CoreGraphics
 
-/// Persists the last successful interactive region capture (Cocoa global rect + display).
 public enum LastRegionStore {
     private static let key = "capture.lastRegion"
 

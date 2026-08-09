@@ -1,8 +1,6 @@
 import CoreGraphics
 
 public enum CaptureGeometry {
-    /// Convert a Cocoa global selection rect (bottom-left origin) into a
-    /// display-local top-left source rect suitable for ScreenCaptureKit.
     public static func topLeftSourceRect(selectionGlobalCocoa: CGRect, displayCocoaFrame: CGRect) -> CGRect {
         let local = CGRect(
             x: selectionGlobalCocoa.minX - displayCocoaFrame.minX,

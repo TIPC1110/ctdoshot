@@ -1,8 +1,6 @@
 # ctdoshot
 
-**面向重度用户的原生 macOS 截图工具，轻快高效。**
-
-菜单栏截图 → 标注 → 复制/保存。基于 ScreenCaptureKit、SwiftUI 与 Vision。工作流接近 Shottr / ShareX，专为 macOS 打造。
+macOS 菜单栏截图工具：截图、标注、复制/保存。
 
 **出品：[ctdoteam](https://github.com/TIPC1110)** · [GitHub](https://github.com/TIPC1110/ctdoshot)
 

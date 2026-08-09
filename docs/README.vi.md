@@ -1,8 +1,6 @@
 # ctdoshot
 
-**Công cụ chụp màn hình macOS thuần native, nhanh, dành cho power user.**
-
-Menu bar → chụp → chú thích → copy/lưu. Dùng ScreenCaptureKit, SwiftUI và Vision. Gần workflow kiểu Shottr / ShareX, tối ưu cho macOS.
+Công cụ chụp màn hình menu bar cho macOS: chụp, chú thích, copy/lưu.
 
 **Bởi [ctdoteam](https://github.com/TIPC1110)** · [GitHub](https://github.com/TIPC1110/ctdoshot)
 

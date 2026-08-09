@@ -7,19 +7,14 @@ import CoreVideo
 import ScreenCaptureKit
 import VideoToolbox
 
-/// Screen capture via ScreenCaptureKit (in-process) + region overlay.
-/// Avoids spawning `/usr/sbin/screencapture` so TCC binds to `com.ctdoshot.app`.
 public enum CaptureEngine {
     private static let overlay = RegionSelectionOverlay()
     private static let maxScrollFrames = 15
-
-    // MARK: - Permission
 
     public static func hasScreenRecordingPermission() -> Bool {
         CGPreflightScreenCaptureAccess()
     }
 
-    /// Shows the system Screen Recording prompt when needed.
     @discardableResult
     public static func requestScreenRecordingPermission() -> Bool {
         if CGPreflightScreenCaptureAccess() { return true }
@@ -33,25 +28,15 @@ public enum CaptureEngine {
         }
         DispatchQueue.main.async {
             _ = requestScreenRecordingPermission()
-            // User may enable toggle without granting immediately; re-check.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 completion(CGPreflightScreenCaptureAccess())
             }
         }
     }
 
-    // MARK: - Main-thread delivery (NSImage is not Sendable; hop explicitly)
-
-    /// Deliver capture results on the main queue without `@Sendable` + `MainActor.run` warnings.
-    /// Callers always expect UI-thread completions.
     private static func deliverOnMain(_ image: NSImage?, _ completion: @escaping (NSImage?) -> Void) {
-        // NSImage is safe to hand off after capture completes; isolate transfer for Swift 6.
         nonisolated(unsafe) let transfer = image
-        if Thread.isMainThread {
-            completion(transfer)
-        } else {
-            DispatchQueue.main.async { completion(transfer) }
-        }
+        DispatchQueue.main.async { completion(transfer) }
     }
 
     private static func deliverOnMain(
@@ -60,16 +45,9 @@ public enum CaptureEngine {
         _ completion: @escaping (NSImage?, Bool) -> Void
     ) {
         nonisolated(unsafe) let transfer = image
-        if Thread.isMainThread {
-            completion(transfer, isPartial)
-        } else {
-            DispatchQueue.main.async { completion(transfer, isPartial) }
-        }
+        DispatchQueue.main.async { completion(transfer, isPartial) }
     }
 
-    // MARK: - Full screen (async-friendly)
-
-    /// Capture main display. Completion always on main.
     public static func captureFullScreen(completion: @escaping (NSImage?) -> Void) {
         ensurePermission { granted in
             guard granted else {
@@ -83,38 +61,6 @@ public enum CaptureEngine {
             }
         }
     }
-
-    /// Legacy sync wrapper — **must not** be called on the main thread.
-    public static func captureScreenImage(screenRect: CGRect? = nil) -> NSImage? {
-        if Thread.isMainThread {
-            // Avoid deadlock: kick async path is preferred; sync on main is unsafe.
-            var result: NSImage?
-            let sem = DispatchSemaphore(value: 0)
-            DispatchQueue.global(qos: .userInitiated).async {
-                result = captureScreenImageOffMain(screenRect: screenRect)
-                sem.signal()
-            }
-            _ = sem.wait(timeout: .now() + 10)
-            return result
-        }
-        return captureScreenImageOffMain(screenRect: screenRect)
-    }
-
-    private static func captureScreenImageOffMain(screenRect: CGRect?) -> NSImage? {
-        var result: NSImage?
-        let sem = DispatchSemaphore(value: 0)
-        Task {
-            if !CGPreflightScreenCaptureAccess() {
-                await MainActor.run { _ = CGRequestScreenCaptureAccess() }
-            }
-            result = await captureWithScreenCaptureKit(targetRectGlobal: screenRect)
-            sem.signal()
-        }
-        _ = sem.wait(timeout: .now() + 10)
-        return result
-    }
-
-    // MARK: - Interactive region
 
     public static func captureRegionInteractive(completion: @escaping (NSImage?) -> Void) {
         ensurePermission { granted in
@@ -145,10 +91,6 @@ public enum CaptureEngine {
         overlay.cancel(notify: true)
     }
 
-    // MARK: - Last region
-
-    /// Re-capture the last successful interactive region. Completion on main.
-    /// Returns `nil` when no region has been stored yet.
     public static func captureLastRegion(completion: @escaping (NSImage?) -> Void) {
         guard let (rect, _) = LastRegionStore.load(), rect.width >= 4, rect.height >= 4 else {
             DispatchQueue.main.async { completion(nil) }
@@ -167,10 +109,6 @@ public enum CaptureEngine {
         }
     }
 
-    // MARK: - Active window
-
-    /// Capture the frontmost on-screen app window via ScreenCaptureKit.
-    /// Completion on main; `nil` if no matching window / permission denied.
     public static func captureActiveWindow(completion: @escaping (NSImage?) -> Void) {
         ensurePermission { granted in
             guard granted else {
@@ -179,7 +117,6 @@ public enum CaptureEngine {
                 return
             }
             Task {
-                // Status-item menu makes us frontmost; yield so the previous app restores.
                 await MainActor.run { NSApp.deactivate() }
                 try? await Task.sleep(nanoseconds: 200_000_000)
                 let img = await captureFrontmostWindow()
@@ -188,12 +125,6 @@ public enum CaptureEngine {
         }
     }
 
-    // MARK: - Scrolling capture
-
-    /// Interactive region, then scroll-stitch frames. Completion on main.
-    /// - Parameters:
-    ///   - completion: `(image, isPartial)`. `isPartial` is true when stitch failed
-    ///     and a best-effort single frame was returned instead.
     public static func captureScrolling(completion: @escaping (NSImage?, Bool) -> Void) {
         ensurePermission { granted in
             guard granted else {
@@ -216,8 +147,6 @@ public enum CaptureEngine {
             }
         }
     }
-
-    // MARK: - ScreenCaptureKit core
 
     private static func captureWithScreenCaptureKit(targetRectGlobal: CGRect?) async -> NSImage? {
         do {
@@ -335,8 +264,6 @@ public enum CaptureEngine {
         }
     }
 
-    // MARK: - Window capture core
-
     private static func captureFrontmostWindow() async -> NSImage? {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
@@ -424,8 +351,6 @@ public enum CaptureEngine {
         }
     }
 
-    // MARK: - Scrolling capture core
-
     private static func performScrollingCapture(region: CGRect) async -> (NSImage?, Bool) {
         let maxHeight = scrollMaxHeightPoints()
         var frames: [NSImage] = []
@@ -479,7 +404,6 @@ public enum CaptureEngine {
         event.post(tap: .cghidEventTap)
     }
 
-    /// Cocoa global (bottom-left primary) → Quartz global (top-left primary).
     private static func quartzPoint(fromCocoa point: CGPoint) -> CGPoint {
         let primaryHeight = NSScreen.screens.first(where: {
             $0.frame.origin == .zero
@@ -510,8 +434,6 @@ public enum CaptureEngine {
         }
         return 20000
     }
-
-    // MARK: - Helpers
 
     private static func displayID(containing rect: CGRect) -> UInt32 {
         let center = CGPoint(x: rect.midX, y: rect.midY)
@@ -544,7 +466,6 @@ public enum CaptureEngine {
     }
 
     private static func windowScale(for window: SCWindow) -> CGFloat {
-        // SCWindow.frame is top-left global; map center into Cocoa for NSScreen hit-test.
         let primaryHeight = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.height
             ?? NSScreen.main?.frame.height
             ?? 0
@@ -561,16 +482,7 @@ public enum CaptureEngine {
     public static func presentPermissionHelp() {
         let alert = NSAlert()
         alert.messageText = "Screen Recording required"
-        alert.informativeText = """
-        ctdoshot needs Screen Recording to capture your screen.
-
-        1. System Settings → Privacy & Security → Screen Recording
-        2. Enable ctdoshot
-        3. Quit ctdoshot (⌘Q) and reopen build/ctdoshot.app
-
-        Always launch the packaged app after: ./scripts/package-app.sh
-        Do not use “swift run” for capture testing — TCC will treat it as a different binary.
-        """
+        alert.informativeText = "Enable ctdoshot under System Settings → Privacy & Security → Screen Recording, then quit and reopen the app."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Open Settings")
         alert.addButton(withTitle: "Cancel")
@@ -581,8 +493,6 @@ public enum CaptureEngine {
         }
     }
 }
-
-// MARK: - Continuations (thread-safe once)
 
 private final class ContinuationBox: @unchecked Sendable {
     private var cont: CheckedContinuation<CGImage, Error>?

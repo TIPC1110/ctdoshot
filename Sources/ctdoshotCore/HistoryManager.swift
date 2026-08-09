@@ -19,7 +19,6 @@ public struct ShotItem: Identifiable, Codable, Equatable {
     }
 }
 
-/// Pure OCR + filename filter for history gallery search.
 public enum HistorySearch {
     public static func filter(items: [ShotItem], query: String) -> [ShotItem] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,7 +61,6 @@ public class HistoryManager: ObservableObject {
         saveHistory()
     }
 
-    /// Convenience wrapper around `HistorySearch.filter`.
     public func filtered(query: String) -> [ShotItem] {
         HistorySearch.filter(items: historyItems, query: query)
     }

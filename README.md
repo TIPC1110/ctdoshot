@@ -1,8 +1,6 @@
 # ctdoshot
 
-**Fast, native macOS screenshot utility for power users.**
-
-Menu-bar capture → annotate → copy/save, built with ScreenCaptureKit, SwiftUI, and Vision. Inspired by Shottr / ShareX-class workflows, tuned for macOS.
+Menu-bar screenshot tool for macOS: capture, annotate, copy/save.
 
 **By [ctdoteam](https://github.com/TIPC1110)** · [GitHub](https://github.com/TIPC1110/ctdoshot)
 
@@ -201,7 +199,6 @@ ctdoshot runs **locally**. Screenshots and OCR stay on your Mac unless you copy,
 ## Acknowledgments
 
 - Built for everyday capture workflows on macOS  
-- Concepts familiar from tools like Shottr and ShareX — implemented natively with Apple frameworks  
 
 ---
 
@@ -242,5 +239,5 @@ SOFTWARE.
 ---
 
 <p align="center">
-  <sub>ctdoshot by ctdoteam — capture more, friction less.</sub>
+  <sub>ctdoshot by ctdoteam</sub>
 </p>

@@ -8,7 +8,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
     public var preferencesWindow: NSWindow?
     public var historyWindow: NSWindow?
     public var lastCapturedImage: NSImage?
-    /// Strong refs so pin panels stay alive (and can be closed on quit).
     private var pinControllers: [PinWindowController] = []
     private var isOCRBusy = false
 
@@ -17,14 +16,12 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu-bar utility: no dock bounce; still show in Cmd-Tab when windows open.
         NSApp.setActivationPolicy(.accessory)
 
         setupNotifications()
         setupStatusBar()
         setupHotkey()
 
-        // Bind Screen Recording TCC to this signed bundle early (one system dialog).
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             if !CaptureEngine.hasScreenRecordingPermission() {
                 _ = CaptureEngine.requestScreenRecordingPermission()
@@ -58,7 +55,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         }
         pinControllers.removeAll()
 
-        // Abort any nested modal sessions (old OCR alerts).
         if NSApp.modalWindow != nil {
             NSApp.abortModal()
             NSApp.stopModal()
@@ -155,7 +151,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         ))
         menu.addItem(NSMenuItem.separator())
 
-        // Explicit Cmd+Q quit — always works for menu-bar apps.
         let quitItem = NSMenuItem(
             title: "menu.quit".localized,
             action: #selector(quit),
@@ -274,7 +269,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         }
     }
 
-    /// Region → OCR → copy clipboard + banner. **No modal alert** (that blocked quit).
     @objc public func triggerOCRQuick() {
         guard !isOCRBusy else { return }
         CaptureEngine.captureRegionInteractive { [weak self] capturedImage in
@@ -303,7 +297,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         let editorView = DrawingCanvasView(
             bgImage: Binding(get: { mutableImage }, set: { mutableImage = $0 }),
             onCopy: { [weak self] finalImg in
-                // ⌃C / ⌘C: copy annotated image only; keep editor open.
                 let opts = OutputManager.currentOptions()
                 let result = OutputManager.process(
                     image: finalImg,
@@ -320,7 +313,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
                 }
             },
             onSave: { [weak self] finalImg in
-                // Save (+ copy per prefs) and close. Path also goes to clipboard when copy is on.
                 self?.processFinalOutput(image: finalImg)
                 self?.overlayWindow?.close()
             },
@@ -352,7 +344,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         self.overlayWindow = window
     }
 
-    /// Shared OCR path: copy text + non-blocking notification. Never `runModal`.
     private func runOCR(on image: NSImage, sourceLabel: String) {
         if isOCRBusy {
             OCRManager.cancel()
@@ -384,7 +375,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         let shouldPersist = options.save || options.copy
         guard shouldPersist else { return }
 
-        // Save/copy first (snappy). OCR for history is best-effort and never blocks quit.
         let result = OutputManager.process(image: image, options: options)
 
         if result.fileURL != nil || result.didCopy {
@@ -400,7 +390,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
 
         guard let url = result.fileURL else { return }
 
-        // History immediately; OCR enrichment is optional and never blocks quit.
         HistoryManager.shared.addShot(filePath: url.path, ocrText: nil)
         OCRManager.recognizeText(in: image) { ocrText in
             guard let ocrText = ocrText, !ocrText.isEmpty else { return }
@@ -416,7 +405,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         pinController.showWindow(nil)
         pinControllers.append(pinController)
 
-        // Drop controller as soon as the pin window closes (avoid session-long leaks).
         if let window = pinController.window {
             NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
@@ -428,7 +416,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
             }
         }
 
-        // Safety prune for any already-closed controllers.
         pinControllers.removeAll { $0.window?.isVisible != true && $0.window != pinController.window }
     }
 

@@ -7,7 +7,6 @@ enum OCRManager {
     private static var currentRequest: VNRecognizeTextRequest?
     private static let lock = NSLock()
 
-    /// Cancel in-flight Vision request (any thread).
     static func cancel() {
         lock.lock()
         currentRequest?.cancel()
@@ -15,7 +14,6 @@ enum OCRManager {
         lock.unlock()
     }
 
-    /// Completion always on main queue.
     static func recognizeText(in image: NSImage, completion: @escaping (String?) -> Void) {
         guard let cgImage = makeCGImage(from: image) else {
             DispatchQueue.main.async { completion(nil) }
@@ -51,7 +49,6 @@ enum OCRManager {
                 return
             }
 
-            // Vision origin is bottom-left → sort top-to-bottom, then left-to-right.
             let sorted = observations.sorted { a, b in
                 let ay = a.boundingBox.midY
                 let by = b.boundingBox.midY
@@ -69,7 +66,6 @@ enum OCRManager {
 
             var text = lines.joined(separator: "\n")
             if UserDefaults.standard.bool(forKey: "removeLineBreaks") {
-                // Collapse any whitespace run (incl. newlines) to a single space — safer for CJK.
                 text = text
                     .replacingOccurrences(
                         of: "\\s+",
@@ -115,7 +111,6 @@ enum OCRManager {
         }
     }
 
-    /// Full-resolution CGImage — bare `cgImage(forProposedRect:)` is unreliable.
     private static func makeCGImage(from image: NSImage) -> CGImage? {
         if let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
            cg.width >= 2, cg.height >= 2 {
