@@ -15,6 +15,7 @@ class LanguageManager: ObservableObject {
     @AppStorage("appLanguage") var currentLanguage: AppLanguage = .system {
         didSet {
             objectWillChange.send()
+            NotificationCenter.default.post(name: Notification.Name("AppLanguageDidChange"), object: nil)
         }
     }
 
@@ -43,6 +44,30 @@ class LanguageManager: ObservableObject {
 
 private let enDict: [String: String] = [
     // Menu Bar
+    "menu.app": "ctdoshot",
+    "menu.about": "About ctdoshot",
+    "menu.help": "ctdoshot Help",
+    "menu.services": "Services",
+    "menu.hide": "Hide ctdoshot",
+    "menu.hide_others": "Hide Others",
+    "menu.show_all": "Show All",
+    "menu.file": "File",
+    "menu.close_window": "Close Window",
+    "menu.edit": "Edit",
+    "menu.undo": "Undo",
+    "menu.redo": "Redo",
+    "menu.cut": "Cut",
+    "menu.copy": "Copy",
+    "menu.paste": "Paste",
+    "menu.select_all": "Select All",
+    "menu.view": "View",
+    "menu.zoom_in": "Zoom In",
+    "menu.zoom_out": "Zoom Out",
+    "menu.actual_size": "Actual Size",
+    "menu.window": "Window",
+    "menu.minimize": "Minimize",
+    "menu.zoom_window": "Zoom",
+    "menu.bring_all_front": "Bring All to Front",
     "menu.reopen": "Reopen ctdoshot",
     "menu.capture_screen": "Capture Screen",
     "menu.capture_area": "Capture Area",
@@ -123,6 +148,30 @@ private let enDict: [String: String] = [
 
 private let viDict: [String: String] = [
     // Menu Bar
+    "menu.app": "ctdoshot",
+    "menu.about": "Giới thiệu ctdoshot",
+    "menu.help": "Trợ giúp ctdoshot",
+    "menu.services": "Dịch vụ",
+    "menu.hide": "Ẩn ctdoshot",
+    "menu.hide_others": "Ẩn ứng dụng khác",
+    "menu.show_all": "Hiển thị tất cả",
+    "menu.file": "Tập tin",
+    "menu.close_window": "Đóng cửa sổ",
+    "menu.edit": "Chỉnh sửa",
+    "menu.undo": "Hoàn tác",
+    "menu.redo": "Làm lại",
+    "menu.cut": "Cắt",
+    "menu.copy": "Sao chép",
+    "menu.paste": "Dán",
+    "menu.select_all": "Chọn tất cả",
+    "menu.view": "Hiển thị",
+    "menu.zoom_in": "Phóng to",
+    "menu.zoom_out": "Thu nhỏ",
+    "menu.actual_size": "Kích thước thực",
+    "menu.window": "Cửa sổ",
+    "menu.minimize": "Thu nhỏ cửa sổ",
+    "menu.zoom_window": "Phóng to cửa sổ",
+    "menu.bring_all_front": "Đưa tất cả ra trước",
     "menu.reopen": "Mở lại ctdoshot",
     "menu.capture_screen": "Chụp toàn màn hình",
     "menu.capture_area": "Chụp vùng chọn",

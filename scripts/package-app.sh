@@ -61,10 +61,27 @@ pick_identity() {
   echo ""
 }
 
-echo "==> swift build -c release"
-swift build -c release
+ARCH="${CTDOSHOT_ARCH:-}"
+if [[ "$*" == *"--universal"* ]] || [[ "$ARCH" == "universal" ]]; then
+  echo "==> building Universal Binary (arm64 + x86_64)..."
+  swift build -c release --triple arm64-apple-macosx13.0
+  swift build -c release --triple x86_64-apple-macosx13.0
+  BIN_ARM64="$ROOT/.build/arm64-apple-macosx/release/${APP_NAME}"
+  BIN_X86_64="$ROOT/.build/x86_64-apple-macosx/release/${APP_NAME}"
+  BIN_FAT="$ROOT/.build/release/${APP_NAME}_universal"
+  mkdir -p "$ROOT/.build/release"
+  lipo -create -output "$BIN_FAT" "$BIN_ARM64" "$BIN_X86_64"
+  BIN="$BIN_FAT"
+elif [[ "$*" == *"--intel"* ]] || [[ "$ARCH" == "x86_64" ]]; then
+  echo "==> building Intel x86_64 binary..."
+  swift build -c release --triple x86_64-apple-macosx13.0
+  BIN="$ROOT/.build/x86_64-apple-macosx/release/${APP_NAME}"
+else
+  echo "==> swift build -c release"
+  swift build -c release
+  BIN="$ROOT/.build/release/${APP_NAME}"
+fi
 
-BIN="$ROOT/.build/release/${APP_NAME}"
 if [[ ! -x "$BIN" ]]; then
   echo "error: missing binary $BIN" >&2
   exit 1

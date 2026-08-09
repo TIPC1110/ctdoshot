@@ -20,7 +20,17 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
 
         setupNotifications()
         setupStatusBar()
+        setupMainMenu()
         setupHotkey()
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("AppLanguageDidChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.setupMainMenu()
+            self?.rebuildMenu()
+        }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             if !CaptureEngine.hasScreenRecordingPermission() {
@@ -81,6 +91,14 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
 
     public func rebuildMenu() {
         let menu = NSMenu()
+
+        let aboutItem = NSMenuItem(
+            title: "menu.about".localized,
+            action: #selector(showAboutPanel),
+            keyEquivalent: ""
+        )
+        menu.addItem(aboutItem)
+        menu.addItem(NSMenuItem.separator())
 
         let reopenItem = NSMenuItem(
             title: "menu.reopen".localized,
@@ -149,6 +167,18 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
             action: #selector(openSettings),
             keyEquivalent: ","
         ))
+
+        menu.addItem(NSMenuItem(
+            title: "menu.help".localized,
+            action: #selector(openHelpDocs),
+            keyEquivalent: ""
+        ))
+
+        let servicesItem = NSMenuItem(title: "menu.services".localized, action: nil, keyEquivalent: "")
+        let servicesMenu = NSMenu()
+        servicesItem.submenu = servicesMenu
+        menu.addItem(servicesItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
@@ -160,6 +190,201 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         menu.addItem(quitItem)
 
         statusItem?.menu = menu
+        setupMainMenu()
+    }
+
+    public func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        // 1. App Menu
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: "menu.app".localized)
+
+        let aboutItem = NSMenuItem(
+            title: "menu.about".localized,
+            action: #selector(showAboutPanel),
+            keyEquivalent: ""
+        )
+        appMenu.addItem(aboutItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let settingsItem = NSMenuItem(
+            title: "menu.settings".localized,
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let servicesItem = NSMenuItem(title: "menu.services".localized, action: nil, keyEquivalent: "")
+        let servicesMenu = NSMenu()
+        servicesItem.submenu = servicesMenu
+        NSApp.servicesMenu = servicesMenu
+        appMenu.addItem(servicesItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let hideItem = NSMenuItem(
+            title: "menu.hide".localized,
+            action: #selector(NSApplication.hide(_:)),
+            keyEquivalent: "h"
+        )
+        appMenu.addItem(hideItem)
+
+        let hideOthersItem = NSMenuItem(
+            title: "menu.hide_others".localized,
+            action: #selector(NSApplication.hideOtherApplications(_:)),
+            keyEquivalent: "h"
+        )
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(hideOthersItem)
+
+        let showAllItem = NSMenuItem(
+            title: "menu.show_all".localized,
+            action: #selector(NSApplication.unhideAllApplications(_:)),
+            keyEquivalent: ""
+        )
+        appMenu.addItem(showAllItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(
+            title: "menu.quit".localized,
+            action: #selector(quit),
+            keyEquivalent: "q"
+        )
+        appMenu.addItem(quitItem)
+
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        // 2. File Menu
+        let fileMenuItem = NSMenuItem()
+        let fileMenu = NSMenu(title: "menu.file".localized)
+
+        let closeItem = NSMenuItem(
+            title: "menu.close_window".localized,
+            action: #selector(NSWindow.performClose(_:)),
+            keyEquivalent: "w"
+        )
+        fileMenu.addItem(closeItem)
+
+        let reopenItem = NSMenuItem(
+            title: "menu.reopen".localized,
+            action: #selector(reopenLastCapture),
+            keyEquivalent: "r"
+        )
+        reopenItem.isEnabled = (lastCapturedImage != nil)
+        fileMenu.addItem(reopenItem)
+
+        fileMenuItem.submenu = fileMenu
+        mainMenu.addItem(fileMenuItem)
+
+        // 3. Edit Menu
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "menu.edit".localized)
+
+        editMenu.addItem(withTitle: "menu.undo".localized, action: Selector(("undo:")), keyEquivalent: "z")
+
+        let redoItem = NSMenuItem(
+            title: "menu.redo".localized,
+            action: Selector(("redo:")),
+            keyEquivalent: "z"
+        )
+        redoItem.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(redoItem)
+
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(withTitle: "menu.cut".localized, action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "menu.copy".localized, action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "menu.paste".localized, action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "menu.select_all".localized, action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
+        // 4. View Menu
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "menu.view".localized)
+
+        let zoomInItem = NSMenuItem(title: "menu.zoom_in".localized, action: Selector(("zoomIn:")), keyEquivalent: "+")
+        zoomInItem.keyEquivalentModifierMask = [.command]
+        viewMenu.addItem(zoomInItem)
+
+        let zoomOutItem = NSMenuItem(title: "menu.zoom_out".localized, action: Selector(("zoomOut:")), keyEquivalent: "-")
+        zoomOutItem.keyEquivalentModifierMask = [.command]
+        viewMenu.addItem(zoomOutItem)
+
+        let actualSizeItem = NSMenuItem(title: "menu.actual_size".localized, action: Selector(("actualSize:")), keyEquivalent: "0")
+        actualSizeItem.keyEquivalentModifierMask = [.command]
+        viewMenu.addItem(actualSizeItem)
+
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+
+        // 5. Window Menu
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "menu.window".localized)
+
+        let minimizeItem = NSMenuItem(
+            title: "menu.minimize".localized,
+            action: #selector(NSWindow.performMiniaturize(_:)),
+            keyEquivalent: "m"
+        )
+        windowMenu.addItem(minimizeItem)
+
+        let zoomWindowItem = NSMenuItem(
+            title: "menu.zoom_window".localized,
+            action: #selector(NSWindow.performZoom(_:)),
+            keyEquivalent: ""
+        )
+        windowMenu.addItem(zoomWindowItem)
+
+        windowMenu.addItem(NSMenuItem.separator())
+
+        let bringAllItem = NSMenuItem(
+            title: "menu.bring_all_front".localized,
+            action: #selector(NSApplication.arrangeInFront(_:)),
+            keyEquivalent: ""
+        )
+        windowMenu.addItem(bringAllItem)
+
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        NSApp.windowsMenu = windowMenu
+
+        // 6. Help Menu
+        let helpMenuItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "menu.help".localized)
+
+        let helpDocItem = NSMenuItem(
+            title: "menu.help".localized,
+            action: #selector(openHelpDocs),
+            keyEquivalent: "?"
+        )
+        helpDocItem.keyEquivalentModifierMask = [.command]
+        helpMenu.addItem(helpDocItem)
+
+        helpMenuItem.submenu = helpMenu
+        mainMenu.addItem(helpMenuItem)
+        NSApp.helpMenu = helpMenu
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    @objc public func showAboutPanel() {
+        let options: [NSApplication.AboutPanelOptionKey: Any] = [
+            .applicationName: "ctdoshot",
+            .applicationVersion: "1.0.0",
+            .version: "1",
+            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): "Copyright © 2026 ctdoshot. All rights reserved."
+        ]
+        NSApp.orderFrontStandardAboutPanel(options: options)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc public func openHelpDocs() {
+        if let url = URL(string: "https://github.com/ctdoshot/ctdoshot#readme") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func setupHotkey() {

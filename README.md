@@ -157,7 +157,13 @@ scripts/package-app.sh  # release .app + ad-hoc codesign
 ```bash
 swift build                 # debug
 swift build -c release      # release binary → .build/release/ctdoshot
-./scripts/package-app.sh    # → build/ctdoshot.app (Identifier=com.ctdoshot.app)
+./scripts/package-app.sh    # → build/ctdoshot.app (native architecture)
+
+# Build Universal Binary (arm64 + x86_64) without Xcode GUI:
+./scripts/package-app.sh --universal
+
+# Cross-compile for Mac Intel (x86_64) directly from Apple Silicon Terminal:
+./scripts/package-app.sh --intel
 ```
 
 ### Test
