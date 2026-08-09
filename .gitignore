@@ -1,0 +1,10 @@
+.DS_Store
+.build/
+build/
+.omx/
+.codegraph
+.codegraph/
+.worktrees/
+.codex/
+docs/superpowers/
+AGENTS.md
