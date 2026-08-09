@@ -4,26 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ctdoshot — Native Menu-Bar Screenshot & Annotation Tool for macOS</title>
-  <meta name="description" content="Lightweight macOS menu-bar screenshot tool: capture regions, annotate, Vision OCR, global hotkeys, and Universal 2 binary support.">
+  <meta name="description" content="A minimalist menu-bar utility for macOS 13+. Capture screen regions, annotate, run Apple Vision OCR, and copy or save instantly.">
   <link rel="stylesheet" href="styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <header>
     <div class="nav-container">
-      <a href="#" class="logo">
-        📷 ctdoshot
-        <span class="logo-badge">macOS 13+</span>
+      <a href="#" class="brand-link">
+        <svg class="brand-icon" viewBox="0 0 24 24">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+        </svg>
+        ctdoshot
+        <span class="badge-pastel">macOS 13+</span>
       </a>
       <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="#hotkeys">Hotkeys</a>
+        <a href="#hotkeys">Shortcuts</a>
         <a href="https://github.com/TIPC1110/ctdoshot/wiki" target="_blank">Wiki</a>
         <a href="https://github.com/TIPC1110/ctdoshot" target="_blank">GitHub</a>
-        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-primary">
+        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-cta">
           Download v1.0.0
         </a>
       </div>
@@ -31,70 +31,109 @@
   </header>
 
   <main>
-    <section class="hero">
-      <h1>Menu-Bar Screenshot & Annotation Tool for macOS</h1>
-      <p>Capture screen regions, annotate with vectors & text, run Apple Vision OCR, and copy/save instantly — all from your Mac's menu bar.</p>
+    <section class="hero-section animate-on-scroll">
+      <div class="hero-tag">Native macOS Utility</div>
+      <h1 class="hero-title">Precision capture &amp; <em>annotation</em> for macOS</h1>
+      <p class="hero-subtitle">A status-bar application built for fast screen capture workflows, vector chú thích, Apple Vision OCR, and keyboard-first precision.</p>
 
       <div class="hero-actions">
-        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-primary">
-          ⬇ Download Universal .ZIP (635 KB)
+        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-cta">
+          Download Universal Binary (.ZIP)
         </a>
         <a href="https://github.com/TIPC1110/ctdoshot#install-from-source" class="btn-secondary">
-          ⚡ Build from Source
+          Source Repository
         </a>
       </div>
     </section>
 
-    <section id="features" class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🎯</div>
-        <h3>Multiple Capture Modes</h3>
-        <p>Support for Area Region selection, Fullscreen, Active Window highlight, Last Region re-capture, and Scrolling Stitching.</p>
+    <!-- Faux macOS Window Container -->
+    <section class="window-mockup animate-on-scroll">
+      <div class="window-header">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="window-title-text">ctdoshot — Annotation Canvas</span>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🎨</div>
-        <h3>Annotation Canvas</h3>
-        <p>Draw arrows, text, auto-incrementing step markers (1, 2, 3...), rectangles, freehand pencil, crop canvas, and pixelate blur/mosaic.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🔠</div>
-        <h3>Vision OCR & Search</h3>
-        <p>Instantly extract text from screenshots using Apple's Vision Framework (English, Vietnamese, Japanese) and search capture history by text.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">⌨️</div>
-        <h3>Global Hotkey Recorder</h3>
-        <p>Rebindable global shortcuts using Carbon API. Trigger capture modes instantly from anywhere in macOS.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">📌</div>
-        <h3>Pin to Screen</h3>
-        <p>Pin annotated screenshots floating on top of all windows for easy reference during research or coding.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">💻</div>
-        <h3>Universal 2 Binary</h3>
-        <p>Native 60fps performance on both Apple Silicon (M1/M2/M3/M4) and Intel Macs with zero third-party dependencies.</p>
+      <div class="window-body">
+        <div class="sidebar-demo">
+          <div class="sidebar-item active">
+            <span>Area Capture</span>
+            <kbd>⇧⌘S</kbd>
+          </div>
+          <div class="sidebar-item">
+            <span>Active Window</span>
+            <kbd>⇧⌘W</kbd>
+          </div>
+          <div class="sidebar-item">
+            <span>Last Region</span>
+            <kbd>⇧⌘L</kbd>
+          </div>
+          <div class="sidebar-item">
+            <span>Scrolling Stitch</span>
+            <kbd>⌥⇧⌘X</kbd>
+          </div>
+          <div class="sidebar-item">
+            <span>Quick OCR</span>
+            <kbd>⌃⌥⌘O</kbd>
+          </div>
+        </div>
+        <div class="canvas-demo">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          <span style="font-family: var(--font-mono); font-size: 0.8rem;">Interactive Canvas &amp; Vector Layers</span>
+        </div>
       </div>
     </section>
 
-    <section id="hotkeys" class="hotkeys-section">
-      <h2>Default Shortcuts</h2>
-      <table class="hotkey-table">
+    <!-- Bento Grid Features -->
+    <section id="features" class="animate-on-scroll">
+      <h2 class="section-title">Designed for Workflows</h2>
+      <p class="section-desc">Zero bloat, instant execution, and native system integration.</p>
+
+      <div class="bento-grid">
+        <div class="bento-card wide">
+          <span class="card-tag tag-blue">ScreenCaptureKit Engine</span>
+          <h3>Five Capture Modes</h3>
+          <p>Full support for interactive region selection, full screen, active window background trim, last region re-capture, and debounced scrolling screenshot stitching.</p>
+        </div>
+
+        <div class="bento-card">
+          <span class="card-tag tag-green">Apple Vision</span>
+          <h3>On-Device OCR</h3>
+          <p>Extract text from image selections using Apple Vision in English, Vietnamese, and Japanese with instant search.</p>
+        </div>
+
+        <div class="bento-card">
+          <span class="card-tag tag-yellow">Vector Canvas</span>
+          <h3>Annotation Suite</h3>
+          <p>Draw arrows, text, step numbers (1, 2, 3...), rectangles, freehand pencil, crop canvas, and pixelate blur/mosaic.</p>
+        </div>
+
+        <div class="bento-card wide">
+          <span class="card-tag tag-red">Universal 2 Architecture</span>
+          <h3>Apple Silicon &amp; Intel Support</h3>
+          <p>Native 60fps performance compiled for both arm64 and x86_64 architectures with zero external runtime dependencies.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hotkeys Table -->
+    <section id="hotkeys" class="hotkeys-wrapper animate-on-scroll">
+      <h2 class="section-title">Keyboard Shortcuts</h2>
+      <p class="section-desc">Configurable global hotkey chords registered via Carbon API.</p>
+
+      <table class="hotkeys-table">
         <thead>
           <tr>
             <th>Action</th>
-            <th>Default Shortcut</th>
+            <th>Shortcut</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Capture Area</td>
+            <td>Capture Area Region</td>
             <td><kbd>⇧⌘S</kbd></td>
           </tr>
           <tr>
@@ -114,11 +153,11 @@
             <td><kbd>⌥⇧⌘X</kbd></td>
           </tr>
           <tr>
-            <td>Quick OCR (Region → Clipboard Text)</td>
+            <td>Quick OCR (Region to Clipboard)</td>
             <td><kbd>⌃⌥⌘O</kbd></td>
           </tr>
           <tr>
-            <td>Capture History Gallery</td>
+            <td>History Gallery</td>
             <td><kbd>⇧⌘H</kbd></td>
           </tr>
         </tbody>
@@ -127,10 +166,36 @@
   </main>
 
   <footer>
-    <p>MIT © <strong>ctdoteam</strong> · Built natively for macOS</p>
-    <p><a href="https://github.com/TIPC1110/ctdoshot" style="color: var(--accent-primary); text-decoration: none;">GitHub Repository</a> · <a href="https://github.com/TIPC1110/ctdoshot/wiki" style="color: var(--accent-primary); text-decoration: none;">Documentation Wiki</a></p>
-    <p class="territory-statement">Hoang Sa and Truong Sa are Vietnamese territories.</p>
+    <div class="footer-content">
+      <p>MIT © <strong>ctdoteam</strong> · ctdoshot macOS Application</p>
+      <div class="footer-links">
+        <a href="https://github.com/TIPC1110/ctdoshot" target="_blank">GitHub Repository</a>
+        <a href="https://github.com/TIPC1110/ctdoshot/wiki" target="_blank">Documentation Wiki</a>
+        <a href="https://github.com/TIPC1110/ctdoshot/releases" target="_blank">Releases</a>
+      </div>
+      <p class="territory-notice">Hoang Sa and Truong Sa are Vietnamese territories.</p>
+    </div>
   </footer>
 
+  <script>
+    // Scroll reveal animation with IntersectionObserver
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+      observer.observe(el);
+    });
+  </script>
 </body>
 </html>
