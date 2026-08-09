@@ -1,22 +1,21 @@
 using System;
-using System.Windows;
 using CtdoShotWin.Engine;
 using CtdoShotWin.Helpers;
 using CtdoShotWin.Views;
 
 namespace CtdoShotWin
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         private GlobalHotkey? _hotkeyArea;
 
-        private void Application_Startup(object sender, StartupEventArgs e)
+        private void Application_Startup(object sender, System.Windows.StartupEventArgs e)
         {
             // Hidden anchor window for Win32 message loop & hotkey binding
-            var hiddenWindow = new Window
+            var hiddenWindow = new System.Windows.Window
             {
                 Width = 0, Height = 0,
-                WindowStyle = WindowStyle.None,
+                WindowStyle = System.Windows.WindowStyle.None,
                 ShowInTaskbar = false
             };
             hiddenWindow.Show();
@@ -50,7 +49,7 @@ namespace CtdoShotWin
             });
         }
 
-        protected override void OnExit(ExitEventArgs e)
+        protected override void OnExit(System.Windows.ExitEventArgs e)
         {
             _hotkeyArea?.Dispose();
             base.OnExit(e);

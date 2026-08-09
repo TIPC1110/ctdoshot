@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows;
-using System.Windows.Forms;
 using System.Windows.Media.Imaging;
 
 namespace CtdoShotWin.Engine
@@ -14,10 +13,10 @@ namespace CtdoShotWin.Engine
         /// </summary>
         public static BitmapSource CaptureFullScreen()
         {
-            int left = SystemInformation.VirtualScreen.Left;
-            int top = SystemInformation.VirtualScreen.Top;
-            int width = SystemInformation.VirtualScreen.Width;
-            int height = SystemInformation.VirtualScreen.Height;
+            int left = System.Windows.Forms.SystemInformation.VirtualScreen.Left;
+            int top = System.Windows.Forms.SystemInformation.VirtualScreen.Top;
+            int width = System.Windows.Forms.SystemInformation.VirtualScreen.Width;
+            int height = System.Windows.Forms.SystemInformation.VirtualScreen.Height;
 
             using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             using var g = Graphics.FromImage(bmp);
