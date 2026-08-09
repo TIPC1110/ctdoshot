@@ -65,24 +65,36 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 git clone https://github.com/TIPC1110/ctdoshot.git
 cd ctdoshot
 
-# Release .app with stable codesign identity (recommended)
+# Once per machine: stable code-signing cert (keeps Screen Recording across rebuilds)
+./scripts/ensure-signing-identity.sh
+
+# Release .app
 ./scripts/package-app.sh
 open build/ctdoshot.app
+
+# Optional: install to /Applications so the path never changes
+# CTDOSHOT_INSTALL=1 ./scripts/package-app.sh && open -a ctdoshot
 ```
 
 ### First launch — Screen Recording
 
 1. Open **System Settings → Privacy & Security → Screen Recording**  
 2. Enable **ctdoshot**  
-3. **Quit fully** (⌘Q) and open `build/ctdoshot.app` again  
+3. **Quit fully** (⌘Q) and open the **same** `.app` again  
 
-Always use the **packaged** `.app` for capture. Running `swift run` or a raw binary under `.build/` creates a **different TCC identity** and will re-prompt or fail silently.
+Always use the **packaged** `.app` (or `/Applications/ctdoshot.app`).  
+`swift run` / raw `.build/` binaries are different identities and re-prompt.
 
-If permission loops after a rebuild:
+**Why rebuild used to re-ask:** ad-hoc signing (`codesign -s -`) changes the binary hash every build, so macOS treats each package as a new app.  
+`ensure-signing-identity.sh` creates a named cert (`ctdoshot Developer`); `package-app.sh` signs with it so TCC can stick.
+
+If permission is still sticky after switching from ad-hoc → cert:
 
 ```bash
 tccutil reset ScreenCapture com.ctdoshot.app
+./scripts/package-app.sh
 open build/ctdoshot.app
+# grant once, quit, reopen
 ```
 
 ---
