@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ctdoshot — Native Menu-Bar Screenshot & Annotation Tool for macOS</title>
+  <meta name="description" content="Lightweight macOS menu-bar screenshot tool: capture regions, annotate, Vision OCR, global hotkeys, and Universal 2 binary support.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="#" class="logo">
+        📷 ctdoshot
+        <span class="logo-badge">macOS 13+</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#hotkeys">Hotkeys</a>
+        <a href="https://github.com/TIPC1110/ctdoshot/wiki" target="_blank">Wiki</a>
+        <a href="https://github.com/TIPC1110/ctdoshot" target="_blank">GitHub</a>
+        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-primary">
+          Download v1.0.0
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Menu-Bar Screenshot & Annotation Tool for macOS</h1>
+      <p>Capture screen regions, annotate with vectors & text, run Apple Vision OCR, and copy/save instantly — all from your Mac's menu bar.</p>
+
+      <div class="hero-actions">
+        <a href="https://github.com/TIPC1110/ctdoshot/releases/download/v1.0.0/ctdoshot-macOS-Universal.zip" class="btn-primary">
+          ⬇ Download Universal .ZIP (635 KB)
+        </a>
+        <a href="https://github.com/TIPC1110/ctdoshot#install-from-source" class="btn-secondary">
+          ⚡ Build from Source
+        </a>
+      </div>
+    </section>
+
+    <section id="features" class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Multiple Capture Modes</h3>
+        <p>Support for Area Region selection, Fullscreen, Active Window highlight, Last Region re-capture, and Scrolling Stitching.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Annotation Canvas</h3>
+        <p>Draw arrows, text, auto-incrementing step markers (1, 2, 3...), rectangles, freehand pencil, crop canvas, and pixelate blur/mosaic.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔠</div>
+        <h3>Vision OCR & Search</h3>
+        <p>Instantly extract text from screenshots using Apple's Vision Framework (English, Vietnamese, Japanese) and search capture history by text.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⌨️</div>
+        <h3>Global Hotkey Recorder</h3>
+        <p>Rebindable global shortcuts using Carbon API. Trigger capture modes instantly from anywhere in macOS.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📌</div>
+        <h3>Pin to Screen</h3>
+        <p>Pin annotated screenshots floating on top of all windows for easy reference during research or coding.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">💻</div>
+        <h3>Universal 2 Binary</h3>
+        <p>Native 60fps performance on both Apple Silicon (M1/M2/M3/M4) and Intel Macs with zero third-party dependencies.</p>
+      </div>
+    </section>
+
+    <section id="hotkeys" class="hotkeys-section">
+      <h2>Default Shortcuts</h2>
+      <table class="hotkey-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Default Shortcut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Capture Area</td>
+            <td><kbd>⇧⌘S</kbd></td>
+          </tr>
+          <tr>
+            <td>Capture Full Screen</td>
+            <td><kbd>⇧⌘3</kbd></td>
+          </tr>
+          <tr>
+            <td>Capture Active Window</td>
+            <td><kbd>⇧⌘W</kbd></td>
+          </tr>
+          <tr>
+            <td>Capture Last Region</td>
+            <td><kbd>⇧⌘L</kbd></td>
+          </tr>
+          <tr>
+            <td>Scrolling Capture</td>
+            <td><kbd>⌥⇧⌘X</kbd></td>
+          </tr>
+          <tr>
+            <td>Quick OCR (Region → Clipboard Text)</td>
+            <td><kbd>⌃⌥⌘O</kbd></td>
+          </tr>
+          <tr>
+            <td>Capture History Gallery</td>
+            <td><kbd>⇧⌘H</kbd></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>MIT © <strong>ctdoteam</strong> · Built natively for macOS</p>
+    <p><a href="https://github.com/TIPC1110/ctdoshot" style="color: var(--accent-primary); text-decoration: none;">GitHub Repository</a> · <a href="https://github.com/TIPC1110/ctdoshot/wiki" style="color: var(--accent-primary); text-decoration: none;">Documentation Wiki</a></p>
+    <p class="territory-statement">Hoang Sa and Truong Sa are Vietnamese territories.</p>
+  </footer>
+
+</body>
+</html>
