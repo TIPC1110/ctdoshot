@@ -1,0 +1,44 @@
+name: Swift CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build & Test macOS App
+    runs-on: macos-14
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Build Debug
+      run: swift build -v
+
+    - name: Run Swift Tests
+      run: swift test -v
+
+    - name: Package Universal App (.app)
+      run: |
+        chmod +x scripts/package-app.sh scripts/ensure-signing-identity.sh
+        ./scripts/ensure-signing-identity.sh || true
+        ./scripts/package-app.sh --universal
+
+    - name: Archive Universal .app into ZIP
+      run: |
+        ditto -ck --sequesterRsrc build/ctdoshot.app build/ctdoshot-macOS-Universal.zip
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ctdoshot-macOS-Universal
+        path: build/ctdoshot-macOS-Universal.zip
+        if-no-files-found: error
