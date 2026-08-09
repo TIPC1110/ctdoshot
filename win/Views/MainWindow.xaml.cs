@@ -29,14 +29,14 @@ namespace CtdoShotWin.Views
         {
             if (_currentImage != null)
             {
-                Clipboard.SetImage(_currentImage);
-                MessageBox.Show("Image copied to clipboard!", "ctdoshot-win", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Windows.Clipboard.SetImage(_currentImage);
+                System.Windows.MessageBox.Show("Image copied to clipboard!", "ctdoshot-win", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Save file dialog stub", "ctdoshot-win");
+            System.Windows.MessageBox.Show("Save file dialog stub", "ctdoshot-win");
         }
 
         private async void OcrButton_Click(object sender, RoutedEventArgs e)
@@ -46,12 +46,12 @@ namespace CtdoShotWin.Views
                 var text = await OcrEngineWin.RecognizeTextAsync(_currentImage);
                 if (!string.IsNullOrEmpty(text))
                 {
-                    Clipboard.SetText(text);
-                    MessageBox.Show($"OCR Text copied to clipboard:\n\n{text}", "ctdoshot-win OCR");
+                    System.Windows.Clipboard.SetText(text);
+                    System.Windows.MessageBox.Show($"OCR Text copied to clipboard:\n\n{text}", "ctdoshot-win OCR");
                 }
                 else
                 {
-                    MessageBox.Show("No text recognized.", "ctdoshot-win OCR");
+                    System.Windows.MessageBox.Show("No text recognized.", "ctdoshot-win OCR");
                 }
             }
         }
