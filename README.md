@@ -6,12 +6,18 @@ Menu-bar capture → annotate → copy/save, built with ScreenCaptureKit, SwiftU
 
 **By [ctdoteam](https://github.com/TIPC1110)** · [GitHub](https://github.com/TIPC1110/ctdoshot)
 
-**Documentation / 文档 / ドキュメント:**  
-[English](docs/README.en.md) · [Tiếng Việt](docs/README.vi.md) · [简体中文](docs/README.zh-CN.md) · [日本語](docs/README.ja.md)
-
 [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-blue.svg)](https://github.com/TIPC1110/ctdoshot)
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://www.swift.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+## Documentation (localized)
+
+| Language | File |
+|----------|------|
+| English | [docs/README.en.md](docs/README.en.md) |
+| Tiếng Việt | [docs/README.vi.md](docs/README.vi.md) |
+| 简体中文 | [docs/README.zh-CN.md](docs/README.zh-CN.md) |
+| 日本語 | [docs/README.ja.md](docs/README.ja.md) |
 
 ---
 
@@ -224,18 +230,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
----
-
-## Documentation (localized)
-
-| Language | File |
-|----------|------|
-| English | [docs/README.en.md](docs/README.en.md) |
-| Tiếng Việt | [docs/README.vi.md](docs/README.vi.md) |
-| 简体中文 | [docs/README.zh-CN.md](docs/README.zh-CN.md) |
-| 日本語 | [docs/README.ja.md](docs/README.ja.md) |
-
 
 ---
 
