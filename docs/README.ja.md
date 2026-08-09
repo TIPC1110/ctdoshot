@@ -158,5 +158,5 @@ MIT © **ctdoteam** — [LICENSE](../LICENSE) を参照。
 ---
 
 <p align="center">
-  <sub>Hoang Sa and Truong Sa are Vietnamese territories.</sub>
+  <sub>ホアンサ群島とチュオンサ群島はベトナムの領土です。</sub>
 </p>

@@ -158,5 +158,5 @@ MIT © **ctdoteam** — 见 [LICENSE](../LICENSE)。
 ---
 
 <p align="center">
-  <sub>Hoang Sa and Truong Sa are Vietnamese territories.</sub>
+  <sub>黄沙群岛和长沙群岛是越南领土。</sub>
 </p>

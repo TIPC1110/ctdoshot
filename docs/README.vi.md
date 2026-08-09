@@ -158,5 +158,5 @@ MIT © **ctdoteam** — xem [LICENSE](../LICENSE).
 ---
 
 <p align="center">
-  <sub>Hoang Sa and Truong Sa are Vietnamese territories.</sub>
+  <sub>Hoàng Sa và Trường Sa là lãnh thổ của Việt Nam.</sub>
 </p>
