@@ -1,0 +1,37 @@
+name: Build ctdoshot Windows (.NET 8)
+
+on:
+  push:
+    branches: [ "win" ]
+  pull_request:
+    branches: [ "win" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore win/ctdoshot-win.csproj
+
+    - name: Build Release
+      run: dotnet build win/ctdoshot-win.csproj -c Release --no-restore
+
+    - name: Publish Single-File Executable
+      run: >
+        dotnet publish win/ctdoshot-win.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o output/
+
+    - name: Upload Windows Executable Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ctdoshot-win-x64
+        path: output/
