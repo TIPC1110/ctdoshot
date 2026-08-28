@@ -21,82 +21,61 @@ enum OCRManager {
         }
 
         cancel()
-
-        let request = VNRecognizeTextRequest { request, error in
-            defer {
-                lock.lock()
-                if currentRequest === (request as? VNRecognizeTextRequest) {
-                    currentRequest = nil
-                }
-                lock.unlock()
-            }
-
-            if let error = error as NSError?,
-               error.domain == VNErrorDomain,
-               error.code == 11 /* VNErrorRequestCancelled */ {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            guard error == nil else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
-            guard !observations.isEmpty else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            let sorted = observations.sorted { a, b in
-                let ay = a.boundingBox.midY
-                let by = b.boundingBox.midY
-                if abs(ay - by) > 0.02 { return ay > by }
-                return a.boundingBox.minX < b.boundingBox.minX
-            }
-
-            let lines = sorted.compactMap { obs -> String? in
-                guard let candidate = obs.topCandidates(1).first, candidate.confidence >= 0.25 else {
-                    return nil
-                }
-                let s = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
-                return s.isEmpty ? nil : s
-            }
-
-            var text = lines.joined(separator: "\n")
-            if UserDefaults.standard.bool(forKey: "removeLineBreaks") {
-                text = text
-                    .replacingOccurrences(
-                        of: "\\s+",
-                        with: " ",
-                        options: .regularExpression
-                    )
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-
-            DispatchQueue.main.async {
-                completion(text.isEmpty ? nil : text)
-            }
-        }
-
-        request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
-        request.usesLanguageCorrection = true
-        request.recognitionLanguages = preferredLanguages()
-        if #available(macOS 13.0, *) {
-            request.revision = VNRecognizeTextRequestRevision3
-        }
-
+        let baseRequest = VNRecognizeTextRequest()
+        baseRequest.recognitionLevel = VNRequestTextRecognitionLevel.accurate
+        baseRequest.usesLanguageCorrection = true
+        baseRequest.recognitionLanguages = preferredLanguages()
+        if #available(macOS 13.0, *) { baseRequest.revision = VNRecognizeTextRequestRevision3 }
         lock.lock()
-        currentRequest = request
+        currentRequest = baseRequest
         lock.unlock()
-
         queue.async {
-            do {
-                try VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:]).perform([request])
-            } catch {
-                DispatchQueue.main.async { completion(nil) }
+            func performAndExtract(_ cg: CGImage, req: VNRecognizeTextRequest) -> (String?, Double) {
+                do {
+                    try VNImageRequestHandler(cgImage: cg, orientation: .up, options: [:]).perform([req])
+                    let obs = (req.results as? [VNRecognizedTextObservation]) ?? []
+                    if obs.isEmpty { return (nil, 0) }
+                    var sum: Double = 0; var cnt = 0
+                    for o in obs { if let c = o.topCandidates(1).first { sum += Double(c.confidence); cnt += 1 } }
+                    let avg = cnt > 0 ? sum/Double(cnt) : 0
+                    let sorted = obs.sorted { a,b in
+                        let ay = a.boundingBox.midY; let by = b.boundingBox.midY
+                        if abs(ay - by) > 0.02 { return ay > by }
+                        return a.boundingBox.minX < b.boundingBox.minX
+                    }
+                    let lines = sorted.compactMap { ob -> String? in
+                        guard let cand = ob.topCandidates(1).first, cand.confidence >= 0.25 else { return nil }
+                        let s = cand.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                        return s.isEmpty ? nil : s
+                    }
+                    var t = lines.joined(separator: "\n")
+                    if UserDefaults.standard.bool(forKey: "removeLineBreaks") {
+                        t = t.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    return (t.isEmpty ? nil : t, avg)
+                } catch {
+                    if let e = error as NSError?, e.domain == VNErrorDomain, e.code == 11 { return (nil, 0) }
+                    return (nil, 0)
+                }
             }
+            let req1 = baseRequest
+            let (firstText, firstConf) = performAndExtract(cgImage, req: req1)
+            lock.lock()
+            if currentRequest === req1 { currentRequest = nil }
+            lock.unlock()
+            if let rotated = rotated180(cgImage) {
+                let req2 = VNRecognizeTextRequest()
+                req2.recognitionLevel = req1.recognitionLevel
+                req2.usesLanguageCorrection = req1.usesLanguageCorrection
+                req2.recognitionLanguages = req1.recognitionLanguages
+                if #available(macOS 13.0, *) { req2.revision = VNRecognizeTextRequestRevision3 }
+                let (secondText, secondConf) = performAndExtract(rotated, req: req2)
+                if let s = secondText, secondConf > firstConf + 0.05, firstConf < 0.75 {
+                    DispatchQueue.main.async { completion(s) }
+                    return
+                }
+            }
+            DispatchQueue.main.async { completion(firstText) }
         }
     }
 
@@ -116,14 +95,12 @@ enum OCRManager {
            cg.width >= 2, cg.height >= 2 {
             return cg
         }
-
         if let tiff = image.tiffRepresentation,
            let rep = NSBitmapImageRep(data: tiff),
            let cg = rep.cgImage,
            cg.width >= 2 {
             return cg
         }
-
         let size = image.size
         let pxW = max(1, Int(size.width.rounded(.up)))
         let pxH = max(1, Int(size.height.rounded(.up)))
@@ -147,10 +124,18 @@ enum OCRManager {
         defer { NSGraphicsContext.restoreGraphicsState() }
         guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
         NSGraphicsContext.current = ctx
-        // Fix lật dọc khi fallback qua NSGraphicsContext — Vision đọc ngược nếu không flip
         ctx.cgContext.translateBy(x: 0, y: CGFloat(pxH))
         ctx.cgContext.scaleBy(x: 1, y: -1)
         image.draw(in: CGRect(origin: .zero, size: size), from: .zero, operation: .copy, fraction: 1)
         return rep.cgImage
+    }
+
+    private static func rotated180(_ cg: CGImage) -> CGImage? {
+        let w = cg.width, h = cg.height
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.translateBy(x: CGFloat(w), y: CGFloat(h))
+        ctx.rotate(by: .pi)
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return ctx.makeImage()
     }
 }
