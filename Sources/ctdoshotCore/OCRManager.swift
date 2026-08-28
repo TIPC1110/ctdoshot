@@ -93,7 +93,7 @@ enum OCRManager {
 
         queue.async {
             do {
-                try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+                try VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:]).perform([request])
             } catch {
                 DispatchQueue.main.async { completion(nil) }
             }
@@ -147,6 +147,9 @@ enum OCRManager {
         defer { NSGraphicsContext.restoreGraphicsState() }
         guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
         NSGraphicsContext.current = ctx
+        // Fix lật dọc khi fallback qua NSGraphicsContext — Vision đọc ngược nếu không flip
+        ctx.cgContext.translateBy(x: 0, y: CGFloat(pxH))
+        ctx.cgContext.scaleBy(x: 1, y: -1)
         image.draw(in: CGRect(origin: .zero, size: size), from: .zero, operation: .copy, fraction: 1)
         return rep.cgImage
     }
