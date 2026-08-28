@@ -52,6 +52,10 @@ jobs:
         xcrun stapler staple build/ctdoshot.app
         xcrun stapler validate build/ctdoshot.app
 
+    - name: SwiftLint (warn-only)
+      continue-on-error: true
+      run: swiftlint lint || true
+
     - name: Create DMG
       run: ./scripts/make-dmg.sh
 
