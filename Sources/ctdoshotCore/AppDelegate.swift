@@ -39,6 +39,21 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         }
     }
 
+    func ensureScreenRecordingOrAlert() -> Bool {
+        if CaptureEngine.hasScreenRecordingPermission() { return true }
+        let alert = NSAlert()
+        alert.messageText = "permission.screen.title".localized
+        if alert.messageText == "permission.screen.title" { alert.messageText = "Screen Recording Required" }
+        alert.informativeText = "Enable ctdoshot in System Settings → Privacy & Security → Screen Recording, then quit (⌘Q) and reopen the same .app."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+        return false
+    }
+
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

@@ -34,13 +34,19 @@ Bundle ID: `com.ctdoshot.app` · Menu-bar app (`LSUIElement`)
 
 ---
 
-## Screenshots
+## Demo
 
-> Add product shots under `docs/images/` when available.
+> Dogfooded with ctdoshot — 15 FPS GIFs, <5MB each (placeholders until real capture).
+
+| Region capture | Blur / Pixelate | OCR → Clipboard |
+|----------------|-----------------|-----------------|
+| ![Region](docs/images/demo-region.gif) | ![Blur](docs/images/demo-blur.gif) | ![OCR](docs/images/demo-ocr.gif) |
+
+## Screenshots
 
 | Capture overlay | Editor | Preferences |
 |-----------------|--------|-------------|
-| *Coming soon* | *Coming soon* | *Coming soon* |
+| ![Region](docs/images/demo-region.gif) | *Coming soon* | *Coming soon* |
 
 ---
 

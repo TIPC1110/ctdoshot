@@ -27,6 +27,12 @@ public struct PreferencesView: View {
                     Label("pref.tab_advanced".localized, systemImage: "slider.horizontal.3")
                 }
                 .tag(2)
+
+            TroubleshootingView()
+                .tabItem {
+                    Label("Troubleshooting", systemImage: "wrench")
+                }
+                .tag(3)
         }
         .padding(20)
         .frame(width: 580, height: 550)
