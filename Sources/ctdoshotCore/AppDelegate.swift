@@ -617,9 +617,31 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
 
             let alert = NSAlert()
             alert.messageText = "ocr.copied_alert".localized
-            alert.informativeText = text
+            alert.informativeText = "Đã copy vào Clipboard — \(text.count) ký tự. Xem toàn bộ trong Clipboard, preview dưới đây có thể cuộn."
             alert.alertStyle = .informational
             alert.addButton(withTitle: "OK")
+            // Scrollable preview — giới hạn chiều cao, tránh tràn màn hình khi text dài (fix khung OCR dài không đóng được)
+            let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 520, height: 260))
+            scroll.hasVerticalScroller = true
+            scroll.drawsBackground = true
+            scroll.borderType = .bezelBorder
+            let contentSize = NSSize(width: 520, height: 260)
+            let textView = NSTextView(frame: NSRect(origin: .zero, size: contentSize))
+            textView.string = text
+            textView.isEditable = false
+            textView.isSelectable = true
+            textView.drawsBackground = false
+            textView.textContainerInset = NSSize(width: 6, height: 6)
+            textView.autoresizingMask = [.width, .height]
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView.isVerticallyResizable = true
+            textView.isHorizontallyResizable = false
+            textView.textContainer?.widthTracksTextView = true
+            textView.textContainer?.containerSize = NSSize(width: contentSize.width, height: CGFloat.greatestFiniteMagnitude)
+            scroll.documentView = textView
+            alert.accessoryView = scroll
+            // Cho phép Esc đóng nhanh
+            if let win = alert.window as NSWindow? { win.standardWindowButton(.closeButton)?.isEnabled = true }
             alert.runModal()
         }
     }
