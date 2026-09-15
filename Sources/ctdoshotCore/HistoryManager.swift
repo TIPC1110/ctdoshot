@@ -117,6 +117,7 @@ public class HistoryManager: ObservableObject {
 
     private func saveHistory() {
         do {
+            try FileManager.default.createDirectory(at: historyFile.deletingLastPathComponent(), withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(historyItems)
             try data.write(to: historyFile)
         } catch {

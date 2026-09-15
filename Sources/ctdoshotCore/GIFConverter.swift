@@ -77,9 +77,10 @@ public final class GIFConverter {
             throw GIFConverterError.conversionFailed
         }
 
-        // Downsample frames according to config.frameRate (assumes source 30/60 fps)
+        // Downsample frames according to config.frameRate dynamically based on source FPS
         let totalInputFrames = sampleBuffers.count
-        let step = max(1, totalInputFrames / max(1, Int(Double(totalInputFrames) * Double(config.frameRate) / 30.0)))
+        let sourceFPS = videoTrack.nominalFrameRate > 0 ? Double(videoTrack.nominalFrameRate) : 30.0
+        let step = max(1, Int(round(sourceFPS / Double(config.frameRate))))
         var selectedBuffers: [CMSampleBuffer] = []
         for idx in stride(from: 0, to: totalInputFrames, by: step) {
             selectedBuffers.append(sampleBuffers[idx])

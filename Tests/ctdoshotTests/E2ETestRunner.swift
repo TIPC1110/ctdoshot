@@ -94,7 +94,9 @@ public class E2ETestRunner {
 
     @MainActor
     public func simulateTimePassage(seconds: Double) {
-        recorder.elapsedTime += seconds
+        if recorder.state == .recording {
+            recorder.elapsedTime += seconds
+        }
     }
 
     @MainActor

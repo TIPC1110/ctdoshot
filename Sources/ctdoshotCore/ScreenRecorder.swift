@@ -195,6 +195,8 @@ private final class RecordingSampleBufferHandler: NSObject, SCStreamOutput, AVCa
 
 @MainActor
 public final class ScreenRecorder: NSObject, ObservableObject {
+    public static let shared = ScreenRecorder()
+
     @Published public var state: RecordingState = .idle
     @Published public var elapsedTime: TimeInterval = 0
     @Published public var isMicEnabled: Bool = false {
@@ -223,6 +225,7 @@ public final class ScreenRecorder: NSObject, ObservableObject {
 
     private var tempVideoURL: URL?
     private var finalTargetURL: URL?
+    private var syntheticPixelBuffer: CVPixelBuffer?
 
     public override init() {
         super.init()
@@ -275,9 +278,14 @@ public final class ScreenRecorder: NSObject, ObservableObject {
             completion?(.failure(ScreenRecorderError.alreadyRecording))
             return
         }
-        state = .recording
-        elapsedTime = 0
-        completion?(.success(()))
+        do {
+            try setupSyntheticRecordingSession()
+            state = .recording
+            elapsedTime = 0
+            completion?(.success(()))
+        } catch {
+            completion?(.failure(error))
+        }
     }
 
     /// Starts screen recording with given mode, export format, and audio preference.
@@ -512,6 +520,21 @@ public final class ScreenRecorder: NSObject, ObservableObject {
         }
 
         // 2. Finish AVAssetWriter
+        if let adaptor = self.pixelAdaptor, let vInput = self.videoInput, let buffer = self.syntheticPixelBuffer {
+            let targetDuration = max(2.0, self.elapsedTime)
+            let finalFrameCount = max(30, Int(round(targetDuration * 15.0)))
+            if finalFrameCount > 30 {
+                for i in 30..<finalFrameCount {
+                    let pts = CMTime(value: CMTimeValue(i), timescale: 15)
+                    while !vInput.isReadyForMoreMediaData {
+                        try? await Task.sleep(nanoseconds: 1_000_000)
+                    }
+                    adaptor.append(buffer, withPresentationTime: pts)
+                }
+            }
+        }
+        self.syntheticPixelBuffer = nil
+
         videoInput?.markAsFinished()
         audioInput?.markAsFinished()
 
@@ -540,6 +563,19 @@ public final class ScreenRecorder: NSObject, ObservableObject {
         }
 
         self.state = .idle
+
+        // Register to History & Pasteboard
+        let isGIF = (exportFormat == .gif)
+        HistoryManager.shared.addShot(
+            filePath: targetURL.path,
+            ocrText: nil,
+            mediaType: isGIF ? .gif : .video,
+            duration: elapsedTime
+        )
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(targetURL.path, forType: .string)
+
         return targetURL
     }
 
@@ -556,6 +592,210 @@ public final class ScreenRecorder: NSObject, ObservableObject {
     }
 
     // MARK: - Private Helpers
+
+    // ponytail: synthetic session generator for headless E2E testing without real screens
+    private func setupSyntheticRecordingSession() throws {
+        var saveDir = OutputManager.currentOptions().saveDirectory
+        do {
+            try FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
+        } catch {
+            saveDir = OutputManager.defaultSaveDir
+            try? FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+        let tempMP4 = saveDir.appendingPathComponent("ctdoshot_synth_\(timestamp)_\(UUID().uuidString).mp4")
+        self.tempVideoURL = tempMP4
+
+        if exportFormat == .gif {
+            self.finalTargetURL = saveDir.appendingPathComponent("ctdoshot_synth_\(timestamp)_\(UUID().uuidString).gif")
+        } else {
+            self.finalTargetURL = tempMP4
+        }
+
+        let pixelWidth: Int
+        let pixelHeight: Int
+        switch recordMode {
+        case .region(let rect, _):
+            let (w, h) = Self.snapToEven(points: rect.size, scale: 1.0)
+            pixelWidth = w
+            pixelHeight = h
+        case .fullScreen:
+            pixelWidth = 1920
+            pixelHeight = 1080
+        }
+
+        let writer = try AVAssetWriter(outputURL: tempMP4, fileType: .mp4)
+        self.assetWriter = writer
+
+        let videoSettings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: pixelWidth,
+            AVVideoHeightKey: pixelHeight
+        ]
+        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        vInput.expectsMediaDataInRealTime = false
+        self.videoInput = vInput
+
+        let pixelBufferAttrs: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+            kCVPixelBufferWidthKey as String: pixelWidth,
+            kCVPixelBufferHeightKey as String: pixelHeight
+        ]
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+            assetWriterInput: vInput,
+            sourcePixelBufferAttributes: pixelBufferAttrs
+        )
+        self.pixelAdaptor = adaptor
+
+        if writer.canAdd(vInput) {
+            writer.add(vInput)
+        }
+
+        var aInput: AVAssetWriterInput? = nil
+        if isMicEnabled {
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 44100.0,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128_000
+            ]
+            let audioWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            audioWriterInput.expectsMediaDataInRealTime = false
+            if writer.canAdd(audioWriterInput) {
+                writer.add(audioWriterInput)
+                aInput = audioWriterInput
+                self.audioInput = audioWriterInput
+            }
+        }
+
+        guard writer.startWriting() else {
+            throw ScreenRecorderError.assetWriterCreationFailed
+        }
+        writer.startSession(atSourceTime: .zero)
+
+        // Write synthetic video frames
+        var pixelBuffer: CVPixelBuffer?
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            pixelWidth,
+            pixelHeight,
+            kCVPixelFormatType_32BGRA,
+            pixelBufferAttrs as CFDictionary,
+            &pixelBuffer
+        )
+        if status == kCVReturnSuccess, let buffer = pixelBuffer {
+            CVPixelBufferLockBaseAddress(buffer, [])
+            if let baseAddress = CVPixelBufferGetBaseAddress(buffer) {
+                let byteCount = CVPixelBufferGetDataSize(buffer)
+                memset(baseAddress, 0x40, byteCount)
+            }
+            CVPixelBufferUnlockBaseAddress(buffer, [])
+
+            // Write 30 frames spanning 2 seconds (15 FPS)
+            for i in 0..<30 {
+                let pts = CMTime(value: CMTimeValue(i), timescale: 15)
+                while !vInput.isReadyForMoreMediaData {
+                    Thread.sleep(forTimeInterval: 0.002)
+                }
+                adaptor.append(buffer, withPresentationTime: pts)
+            }
+            self.syntheticPixelBuffer = buffer
+        }
+
+        // Write synthetic audio if mic enabled
+        if isMicEnabled, let audioInput = aInput {
+            appendSyntheticAudioSamples(to: audioInput, durationSeconds: 2.0)
+        }
+    }
+
+    private func appendSyntheticAudioSamples(to audioInput: AVAssetWriterInput, durationSeconds: Double) {
+        var asbd = AudioStreamBasicDescription(
+            mSampleRate: 44100.0,
+            mFormatID: kAudioFormatLinearPCM,
+            mFormatFlags: kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked,
+            mBytesPerPacket: 4,
+            mFramesPerPacket: 1,
+            mBytesPerFrame: 4,
+            mChannelsPerFrame: 2,
+            mBitsPerChannel: 16,
+            mReserved: 0
+        )
+        var formatDesc: CMAudioFormatDescription?
+        guard CMAudioFormatDescriptionCreate(
+            allocator: kCFAllocatorDefault,
+            asbd: &asbd,
+            layoutSize: 0,
+            layout: nil,
+            magicCookieSize: 0,
+            magicCookie: nil,
+            extensions: nil,
+            formatDescriptionOut: &formatDesc
+        ) == noErr, let format = formatDesc else { return }
+
+        let sampleCount = Int(44100.0 * durationSeconds)
+        let byteCount = sampleCount * 4
+        var data = Data(count: byteCount)
+
+        data.withUnsafeMutableBytes { rawBuffer in
+            guard let ptr = rawBuffer.bindMemory(to: Int16.self).baseAddress else { return }
+            for i in 0..<sampleCount {
+                let val = Int16(sin(Double(i) * 2.0 * .pi * 440.0 / 44100.0) * 8000.0)
+                ptr[i * 2] = val
+                ptr[i * 2 + 1] = val
+            }
+        }
+
+        var blockBuffer: CMBlockBuffer?
+        guard CMBlockBufferCreateWithMemoryBlock(
+            allocator: kCFAllocatorDefault,
+            memoryBlock: nil,
+            blockLength: byteCount,
+            blockAllocator: kCFAllocatorDefault,
+            customBlockSource: nil,
+            offsetToData: 0,
+            dataLength: byteCount,
+            flags: 0,
+            blockBufferOut: &blockBuffer
+        ) == noErr, let block = blockBuffer else { return }
+
+        _ = data.withUnsafeBytes { rawPtr in
+            CMBlockBufferReplaceDataBytes(
+                with: rawPtr.baseAddress!,
+                blockBuffer: block,
+                offsetIntoDestination: 0,
+                dataLength: byteCount
+            )
+        }
+
+        var sampleBuffer: CMSampleBuffer?
+        var timing = CMSampleTimingInfo(
+            duration: CMTime(value: 1, timescale: 44100),
+            presentationTimeStamp: .zero,
+            decodeTimeStamp: .invalid
+        )
+
+        guard CMSampleBufferCreate(
+            allocator: kCFAllocatorDefault,
+            dataBuffer: block,
+            dataReady: true,
+            makeDataReadyCallback: nil,
+            refcon: nil,
+            formatDescription: format,
+            sampleCount: sampleCount,
+            sampleTimingEntryCount: 1,
+            sampleTimingArray: &timing,
+            sampleSizeEntryCount: 0,
+            sampleSizeArray: nil,
+            sampleBufferOut: &sampleBuffer
+        ) == noErr, let sBuffer = sampleBuffer else { return }
+
+        while !audioInput.isReadyForMoreMediaData {
+            Thread.sleep(forTimeInterval: 0.002)
+        }
+        audioInput.append(sBuffer)
+    }
 
     private func setupMicrophoneSession() throws {
         let authStatus = AVCaptureDevice.authorizationStatus(for: .audio)

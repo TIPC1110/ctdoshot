@@ -58,14 +58,17 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         false
     }
 
+    @MainActor
     public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         teardownForQuit()
         return .terminateNow
     }
 
+    @MainActor
     private func teardownForQuit() {
         OCRManager.cancel()
         CaptureEngine.cancelInteractiveCapture()
+        HUDController.shared.hide()
         HotkeyManager.shared.unregister()
 
         overlayWindow?.close()
@@ -175,6 +178,24 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         )
         ocrItem.keyEquivalentModifierMask = [.control, .option, .command]
         menu.addItem(ocrItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let recordScreenItem = NSMenuItem(
+            title: "menu.record_screen".localized,
+            action: #selector(triggerScreenRecording),
+            keyEquivalent: "r"
+        )
+        recordScreenItem.keyEquivalentModifierMask = [.control, .command]
+        menu.addItem(recordScreenItem)
+
+        let recordAreaItem = NSMenuItem(
+            title: "menu.record_area".localized,
+            action: #selector(triggerRegionRecording),
+            keyEquivalent: "r"
+        )
+        recordAreaItem.keyEquivalentModifierMask = [.control, .shift, .command]
+        menu.addItem(recordAreaItem)
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(
@@ -517,6 +538,73 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         }
     }
 
+    @MainActor
+    @objc public func triggerScreenRecording() {
+        guard ensureScreenRecordingOrAlert() else { return }
+        let recorder = ScreenRecorder.shared
+        guard recorder.state == .idle else { return }
+
+        Task { @MainActor in
+            do {
+                try await recorder.startRecording(mode: .fullScreen(), format: .mp4, includeMic: false)
+                HUDController.shared.show(recorder: recorder) { [weak self] in
+                    self?.finishRecording()
+                }
+            } catch {
+                self.notify(title: "ctdoshot", body: error.localizedDescription)
+            }
+        }
+    }
+
+    @MainActor
+    @objc public func triggerRegionRecording() {
+        guard ensureScreenRecordingOrAlert() else { return }
+        let recorder = ScreenRecorder.shared
+        guard recorder.state == .idle else { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+        let overlay = RegionSelectionOverlay()
+        overlay.begin { [weak self] rect in
+            guard let self = self, let rect = rect, rect.width >= 10, rect.height >= 10 else { return }
+            Task { @MainActor in
+                do {
+                    try await recorder.startRecording(mode: .region(rect), format: .mp4, includeMic: false)
+                    HUDController.shared.show(recorder: recorder) { [weak self] in
+                        self?.finishRecording()
+                    }
+                } catch {
+                    self.notify(title: "ctdoshot", body: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func finishRecording() {
+        let recorder = ScreenRecorder.shared
+        guard recorder.state == .recording || recorder.state == .paused else { return }
+        HUDController.shared.hide()
+
+        Task { @MainActor in
+            do {
+                let outputURL = try await recorder.stopRecording()
+                HistoryManager.shared.addShot(
+                    filePath: outputURL.path,
+                    ocrText: nil,
+                    mediaType: outputURL.pathExtension.lowercased() == "gif" ? .gif : .video
+                )
+                OutputManager.copyToPasteboard(image: NSImage(), fileURL: outputURL)
+                self.notify(
+                    title: "ctdoshot",
+                    body: "Recording saved: \(outputURL.lastPathComponent)",
+                    subtitle: outputURL.path
+                )
+            } catch {
+                self.notify(title: "ctdoshot", body: "Recording error: \(error.localizedDescription)")
+            }
+        }
+    }
+
     @objc public func openSettings() {
         if preferencesWindow == nil {
             let prefView = PreferencesView()
@@ -710,6 +798,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCen
         UNUserNotificationCenter.current().add(request)
     }
 
+    @MainActor
     @objc public func quit() {
         teardownForQuit()
         NSApp.terminate(nil)

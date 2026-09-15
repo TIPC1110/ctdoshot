@@ -47,6 +47,7 @@ struct ShapeElement: Identifiable, Equatable {
     var endPoint: CGPoint
     var color: Color
     var text: String
+    var lineWidth: CGFloat
 
     init(
         id: UUID = UUID(),
@@ -55,7 +56,8 @@ struct ShapeElement: Identifiable, Equatable {
         startPoint: CGPoint = .zero,
         endPoint: CGPoint = .zero,
         color: Color = .red,
-        text: String = ""
+        text: String = "",
+        lineWidth: CGFloat = 4.0
     ) {
         self.id = id
         self.type = type
@@ -64,6 +66,7 @@ struct ShapeElement: Identifiable, Equatable {
         self.endPoint = endPoint
         self.color = color
         self.text = text
+        self.lineWidth = lineWidth
     }
 }
 
@@ -71,6 +74,8 @@ struct DrawingCanvasView: View {
     @Binding var bgImage: NSImage
     @State private var currentTool: ToolType = .arrow
     @State private var selectedColor: Color = .red
+    @State private var selectedLineWidth: CGFloat = 4.0
+    @State private var zoomScale: CGFloat = 1.0
     @State private var elements: [ShapeElement] = []
     @State private var undoStack: [[ShapeElement]] = []
     @State private var redoStack: [[ShapeElement]] = []
@@ -108,6 +113,14 @@ struct DrawingCanvasView: View {
                 .keyboardShortcut("z", modifiers: .command)
             Button(action: redo) { EmptyView() }
                 .keyboardShortcut("z", modifiers: [.command, .shift])
+            Button(action: { zoomScale = min(zoomScale + 0.25, 3.0) }) { EmptyView() }
+                .keyboardShortcut("=", modifiers: .command)
+            Button(action: { zoomScale = min(zoomScale + 0.25, 3.0) }) { EmptyView() }
+                .keyboardShortcut("+", modifiers: .command)
+            Button(action: { zoomScale = max(zoomScale - 0.25, 0.5) }) { EmptyView() }
+                .keyboardShortcut("-", modifiers: .command)
+            Button(action: { zoomScale = 1.0 }) { EmptyView() }
+                .keyboardShortcut("0", modifiers: .command)
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -117,7 +130,7 @@ struct DrawingCanvasView: View {
 
     private var toolbar: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 toolbarIconButton(
                     systemName: "doc.on.doc",
                     help: "editor.copy_clipboard".localized + " (⌃C / ⌘C)",
@@ -170,19 +183,75 @@ struct DrawingCanvasView: View {
 
                 toolbarDivider
 
+                // Stroke width presets (Fine 2pt, Medium 4pt, Bold 8pt)
+                HStack(spacing: 5) {
+                    ForEach([2.0, 4.0, 8.0], id: \.self) { w in
+                        Button(action: { selectedLineWidth = CGFloat(w) }) {
+                            Circle()
+                                .fill(selectedLineWidth == CGFloat(w) ? Color.accentColor : Color.primary.opacity(0.35))
+                                .frame(width: CGFloat(w + 3), height: CGFloat(w + 3))
+                                .frame(width: 16, height: 16)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Stroke \(Int(w))px")
+                    }
+                }
+
+                toolbarDivider
+
+                // Preset palette + ColorPicker
+                HStack(spacing: 4) {
+                    ForEach([Color.red, Color.green, Color.blue, Color.yellow, Color.white, Color.black], id: \.self) { c in
+                        Button(action: { selectedColor = c }) {
+                            Circle()
+                                .fill(c)
+                                .frame(width: 13, height: 13)
+                                .overlay(Circle().stroke(Color.primary.opacity(0.3), lineWidth: 1))
+                                .overlay(
+                                    Circle().stroke(Color.accentColor, lineWidth: selectedColor == c ? 2 : 0)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
                 ColorPicker("", selection: $selectedColor)
                     .labelsHidden()
-                    .frame(width: 28, height: 28)
+                    .frame(width: 24, height: 24)
 
                 Text(colorHexLabel(selectedColor))
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
                     .foregroundColor(.primary)
-                    .frame(minWidth: 64, alignment: .leading)
+                    .frame(minWidth: 58, alignment: .leading)
                     .help("editor.tab_to_copy".localized)
 
                 Spacer(minLength: 8)
 
                 HStack(spacing: 8) {
+                    // Zoom controls
+                    HStack(spacing: 3) {
+                        Button(action: { zoomScale = max(zoomScale - 0.25, 0.5) }) {
+                            Image(systemName: "minus.magnifyingglass")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Zoom Out (⌘-)")
+
+                        Text("\(Int((zoomScale * 100).rounded()))%")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .frame(minWidth: 34)
+                            .onTapGesture { zoomScale = 1.0 }
+                            .help("Reset Zoom (⌘0)")
+
+                        Button(action: { zoomScale = min(zoomScale + 0.25, 3.0) }) {
+                            Image(systemName: "plus.magnifyingglass")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Zoom In (⌘+)")
+                    }
+
                     labeledActionButton(
                         title: "OCR",
                         systemName: "text.viewfinder",
@@ -293,50 +362,62 @@ struct DrawingCanvasView: View {
 
     private var editorCanvas: some View {
         GeometryReader { geo in
-            let fit = fittedImageRect(imageSize: bgImage.size, in: geo.size)
-            ZStack {
-                CheckeredBackgroundView()
+            let baseFit = fittedImageRect(imageSize: bgImage.size, in: geo.size)
+            let scaledFitSize = CGSize(
+                width: max(baseFit.width * zoomScale, 10),
+                height: max(baseFit.height * zoomScale, 10)
+            )
 
+            ScrollView([.horizontal, .vertical], showsIndicators: zoomScale > 1.0) {
                 ZStack {
-                    Image(nsImage: bgImage)
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: fit.width, height: fit.height)
+                    CheckeredBackgroundView()
 
-                    Canvas { context, size in
-                        for elem in elements {
-                            let viewElem = elementToView(elem, fit: size)
-                            drawElement(viewElem, in: &context)
-                        }
-                    }
-                    .frame(width: fit.width, height: fit.height)
-                    .drawingGroup()
+                    ZStack {
+                        Image(nsImage: bgImage)
+                            .resizable()
+                            .interpolation(.high)
+                            .frame(width: scaledFitSize.width, height: scaledFitSize.height)
 
-                    Canvas { context, size in
-                        if let start = currentStart, let end = currentEnd {
-                            if currentTool == .text { return }
-                            let liveText: String = currentTool == .stepNumber ? "\(stepCounter)" : ""
-                            let temp = ShapeElement(
-                                type: currentTool,
-                                points: currentPencilPoints,
-                                startPoint: start,
-                                endPoint: end,
-                                color: selectedColor,
-                                text: liveText
-                            )
-                            let viewElem = elementToView(temp, fit: size)
-                            drawElement(viewElem, in: &context)
+                        Canvas { context, size in
+                            for elem in elements {
+                                let viewElem = elementToView(elem, fit: size)
+                                drawElement(viewElem, in: &context)
+                            }
                         }
+                        .frame(width: scaledFitSize.width, height: scaledFitSize.height)
+                        .drawingGroup()
+
+                        Canvas { context, size in
+                            if let start = currentStart, let end = currentEnd {
+                                if currentTool == .text { return }
+                                let liveText: String = currentTool == .stepNumber ? "\(stepCounter)" : ""
+                                let temp = ShapeElement(
+                                    type: currentTool,
+                                    points: currentPencilPoints,
+                                    startPoint: start,
+                                    endPoint: end,
+                                    color: selectedColor,
+                                    text: liveText,
+                                    lineWidth: selectedLineWidth
+                                )
+                                let viewElem = elementToView(temp, fit: size)
+                                drawElement(viewElem, in: &context)
+                            }
+                        }
+                        .frame(width: scaledFitSize.width, height: scaledFitSize.height)
+                        .contentShape(Rectangle())
+                        .gesture(drawGesture)
                     }
-                    .frame(width: fit.width, height: fit.height)
-                    .contentShape(Rectangle())
-                    .gesture(drawGesture)
+                    .frame(width: scaledFitSize.width, height: scaledFitSize.height)
                 }
-                .frame(width: fit.width, height: fit.height)
-                .position(x: fit.midX, y: fit.midY)
+                .frame(
+                    width: max(geo.size.width, scaledFitSize.width),
+                    height: max(geo.size.height, scaledFitSize.height)
+                )
             }
-            .onAppear { fitSize = fit.size }
-            .onChange(of: geo.size) { _ in fitSize = fit.size }
+            .onAppear { fitSize = scaledFitSize }
+            .onChange(of: geo.size) { _ in fitSize = scaledFitSize }
+            .onChange(of: zoomScale) { _ in fitSize = scaledFitSize }
         }
     }
 
@@ -392,7 +473,8 @@ struct DrawingCanvasView: View {
                     points: currentPencilPoints,
                     startPoint: start,
                     endPoint: endImg,
-                    color: selectedColor
+                    color: selectedColor,
+                    lineWidth: selectedLineWidth
                 )
                 if currentTool == .stepNumber {
                     newElem.text = "\(stepCounter)"
@@ -430,7 +512,8 @@ struct DrawingCanvasView: View {
                 startPoint: point,
                 endPoint: point,
                 color: selectedColor,
-                text: text
+                text: text,
+                lineWidth: selectedLineWidth
             )
             commitAppend(newElem)
         }
@@ -525,7 +608,8 @@ struct DrawingCanvasView: View {
             startPoint: mappedStart,
             endPoint: mappedEnd,
             color: elem.color,
-            text: elem.text
+            text: elem.text,
+            lineWidth: elem.lineWidth
         )
     }
 
@@ -636,7 +720,8 @@ struct DrawingCanvasView: View {
             startPoint: imageToView(elem.startPoint, fit: fit),
             endPoint: imageToView(elem.endPoint, fit: fit),
             color: elem.color,
-            text: elem.text
+            text: elem.text,
+            lineWidth: elem.lineWidth
         )
     }
 
@@ -657,17 +742,17 @@ struct DrawingCanvasView: View {
 
         switch elem.type {
         case .rectangle:
-            cg.setLineWidth(3 * s)
+            cg.setLineWidth(elem.lineWidth * s)
             cg.stroke(rect)
 
         case .arrow:
-            cg.setLineWidth(4 * s)
+            cg.setLineWidth(elem.lineWidth * s)
             cg.beginPath()
             cg.move(to: elem.startPoint)
             cg.addLine(to: elem.endPoint)
             cg.strokePath()
             let angle = atan2(elem.endPoint.y - elem.startPoint.y, elem.endPoint.x - elem.startPoint.x)
-            let head: CGFloat = 14 * s
+            let head: CGFloat = max(elem.lineWidth * 3.5, 10) * s
             let a1 = angle + .pi * 0.8
             let a2 = angle - .pi * 0.8
             cg.beginPath()
@@ -679,7 +764,7 @@ struct DrawingCanvasView: View {
 
         case .pencil:
             guard let first = elem.points.first, elem.points.count > 1 else { return }
-            cg.setLineWidth(3 * s)
+            cg.setLineWidth(elem.lineWidth * s)
             cg.beginPath()
             cg.move(to: first)
             for pt in elem.points.dropFirst() {
@@ -761,14 +846,14 @@ struct DrawingCanvasView: View {
         case .rectangle:
             var path = Path()
             path.addRect(rect)
-            context.stroke(path, with: .color(elem.color), lineWidth: 3)
+            context.stroke(path, with: .color(elem.color), lineWidth: elem.lineWidth)
 
         case .arrow:
             var path = Path()
             path.move(to: elem.startPoint)
             path.addLine(to: elem.endPoint)
             let angle = atan2(elem.endPoint.y - elem.startPoint.y, elem.endPoint.x - elem.startPoint.x)
-            let head: CGFloat = 14
+            let head: CGFloat = max(elem.lineWidth * 3.5, 10)
             path.move(to: elem.endPoint)
             path.addLine(to: CGPoint(
                 x: elem.endPoint.x + cos(angle + .pi * 0.8) * head,
@@ -779,7 +864,7 @@ struct DrawingCanvasView: View {
                 x: elem.endPoint.x + cos(angle - .pi * 0.8) * head,
                 y: elem.endPoint.y + sin(angle - .pi * 0.8) * head
             ))
-            context.stroke(path, with: .color(elem.color), lineWidth: 4)
+            context.stroke(path, with: .color(elem.color), lineWidth: elem.lineWidth)
 
         case .pencil:
             guard elem.points.count > 1 else { return }
@@ -788,7 +873,7 @@ struct DrawingCanvasView: View {
             for pt in elem.points.dropFirst() {
                 path.addLine(to: pt)
             }
-            context.stroke(path, with: .color(elem.color), lineWidth: 3)
+            context.stroke(path, with: .color(elem.color), lineWidth: elem.lineWidth)
 
         case .stepNumber:
             let circleRect = CGRect(x: elem.startPoint.x - 14, y: elem.startPoint.y - 14, width: 28, height: 28)

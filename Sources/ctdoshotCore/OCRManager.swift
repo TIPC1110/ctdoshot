@@ -63,6 +63,8 @@ enum OCRManager {
             lock.lock()
             if currentRequest === req1 { currentRequest = nil }
             lock.unlock()
+
+            var chosenText = firstText
             if let rotated = rotated180(cgImage) {
                 let req2 = VNRecognizeTextRequest()
                 req2.recognitionLevel = req1.recognitionLevel
@@ -71,11 +73,37 @@ enum OCRManager {
                 if #available(macOS 13.0, *) { req2.revision = VNRecognizeTextRequestRevision3 }
                 let (secondText, secondConf) = performAndExtract(rotated, req: req2)
                 if let s = secondText, secondConf > firstConf + 0.05, firstConf < 0.75 {
-                    DispatchQueue.main.async { completion(s) }
-                    return
+                    chosenText = s
                 }
             }
-            DispatchQueue.main.async { completion(firstText) }
+
+            // ponytail: native Vision barcode/QR scan, zero third-party deps
+            let barcodes = detectBarcodes(in: cgImage)
+            let finalResult: String?
+            if !barcodes.isEmpty {
+                let barcodeHeader = barcodes.map { "[QR/Barcode] \($0)" }.joined(separator: "\n")
+                if let text = chosenText, !text.isEmpty {
+                    finalResult = "\(barcodeHeader)\n\n\(text)"
+                } else {
+                    finalResult = barcodeHeader
+                }
+            } else {
+                finalResult = chosenText
+            }
+
+            DispatchQueue.main.async { completion(finalResult) }
+        }
+    }
+
+    // ponytail: native Vision VNDetectBarcodesRequest for QR and 1D/2D barcodes
+    private static func detectBarcodes(in cgImage: CGImage) -> [String] {
+        let request = VNDetectBarcodesRequest()
+        do {
+            try VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:]).perform([request])
+            let results = request.results ?? []
+            return results.compactMap { $0.payloadStringValue?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        } catch {
+            return []
         }
     }
 
